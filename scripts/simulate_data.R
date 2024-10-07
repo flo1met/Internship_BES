@@ -36,7 +36,7 @@ data_comp <- data_comp %>% # add hypotheses
   select(-c(s_mu, s_Sigma, BF_result))
 
 t2 <- Sys.time()
-t2-t1 #4.9h
+t2-t1 #2.5h
 
 # Calculate PMPs
 data_comp <-  data_comp %>%
@@ -76,7 +76,7 @@ data_part <- data_part %>% # add hypotheses
 
 
 t2 <- Sys.time()
-t2-t1 # 4h
+t2-t1 # 2h
 
 # Calculate PMPs and do BES
 data_part <- data_part %>%
