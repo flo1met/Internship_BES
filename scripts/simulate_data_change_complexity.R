@@ -38,7 +38,7 @@ data_part <- data_part %>% # add hypotheses
 
 
 t2 <- Sys.time()
-t2-t1 # 4h
+t2-t1 # 2h
 
 # Calculate PMPs and do BES
 data_part <- data_part %>%
@@ -55,5 +55,5 @@ agg_part <- data_part %>%
             BES_PMP1c = mean(BES_PMP1c),
             BES_PMP1u = mean(BES_PMP1u))
 
-save(data_part, agg_part, file = "../data/data_part_10k_switch_m_f.RData")
+save(data_part, agg_part, file = "../data/data_part_10k_change_complexity.RData")
 rm(data_part, agg_part)
