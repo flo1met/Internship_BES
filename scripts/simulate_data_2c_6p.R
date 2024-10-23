@@ -7,9 +7,9 @@ set.seed(1337)
 
 # Set Parameters
 h_s1 <- "mu_s > mu_m"
-h_s2 <- "mu_f > mu_m"
+h_s2 <- "mu_m > mu_f"
 h_s3 <- "mu_f > mu_t"
-H <- "mu_s > mu_f > mu_m > mu_t"
+H <- "mu_s > mu_m > mu_f > mu_t"
 
 nsim <- 1e4
 
