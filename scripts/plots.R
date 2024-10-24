@@ -1,5 +1,5 @@
-load(".../data/data_comp_10k.RData")
-load(".../data/data_part_10k.RData")
+load("../data/data_comp_10k.RData")
+load("../data/data_part_10k.RData")
 library(tidyverse)
 library(ggplot2)
 
@@ -24,7 +24,7 @@ aggRes %>% ggplot() +
   facet_grid(c~ d) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-ggsave(".../plots/lineplot.pdf", width = 7, height = 7)
+ggsave("../plots/lineplot.pdf", width = 7, height = 7)
 
 # Boxplots
 data_comp %>% 
@@ -41,7 +41,7 @@ data_comp %>%
   labs(x = "Sample Size", y = "Posterior Model Probabilities") +
   theme_minimal()
 
-ggsave(".../plots/boxplot_comp.pdf", width = 7, height = 7)
+ggsave("../plots/boxplot_comp.pdf", width = 7, height = 7)
 
 data_part %>% 
   filter(study == 3, n_sample != 5000, c == 0.2, d == 0.2) %>%
@@ -57,7 +57,7 @@ data_part %>%
   labs(x = "Sample Size (per Study)", y = "Posterior Model Probabilities") +
   theme_minimal()
 
-ggsave(".../plots/boxplot_part.pdf", width = 7, height = 7)
+ggsave("../plots/boxplot_part.pdf", width = 7, height = 7)
 
 # Violinplots
 data_comp %>% 
@@ -74,7 +74,7 @@ data_comp %>%
   labs(x = "Sample Size", y = "Posterior Model Probabilities") +
   theme_minimal()
 
-ggsave(".../plots/violin_comp.pdf", width = 7, height = 7)
+ggsave("../plots/violin_comp.pdf", width = 7, height = 7)
 
 data_part %>% 
   filter(study == 3, n_sample != 5000, c == 0.2, d == 0.2) %>%
@@ -90,6 +90,6 @@ data_part %>%
   labs(x = "Sample Size (per Study)", y = "Posterior Model Probabilities") +
   theme_minimal()
 
-ggsave(".../plots/violin_part.pdf", width = 7, height = 7)
+ggsave("../plots/violin_part.pdf", width = 7, height = 7)
 
 rm(agg_comp, agg_comp_filt, agg_part, agg_part_filt, aggRes, data_comp, data_part)

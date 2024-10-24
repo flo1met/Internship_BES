@@ -60,7 +60,7 @@ rm(data_comp, agg_comp)
 # Simulate Data Partial Hypotheses
 t1 <- Sys.time()
 data_part <- simulate(nsim = nsim,
-                      study = 1:3,
+                      study = 1:6,
                       n_sample = c(25, 50, 100, 500, 5000),
                       d = c(0, 0.2, 0.5, 0.8),
                       c = c(0, 0.2, 0.5, 0.8))
@@ -70,7 +70,10 @@ data_part <- data_part %>% # add hypotheses
   mutate(H = case_when(
     study == 1 ~ h_s1,
     study == 2 ~ h_s2,
-    study == 3 ~ h_s3)) %>% #compute BF
+    study == 3 ~ h_s3,
+    study == 4 ~ h_s1,
+    study == 5 ~ h_s2,
+    study == 6 ~ h_s3)) %>% #compute BF
   rowwise() %>%
   mutate(BF_result = list(BF(x = s_mu, 
                              Sigma = s_Sigma/n_sample, 

@@ -33,7 +33,7 @@ data_comp <- data_comp %>% # add hypotheses
                              hypothesis = H)),
          BF1u = BF_result$BFtu_confirmatory[[1]],
          PMP1c = BF_result$PHP_confirmatory[[1]]) %>%
-  select(-c(s_mu, s_Sigma, BF_result))
+  dplyr::select(-c(s_mu, s_Sigma, BF_result))
 
 t2 <- Sys.time()
 t2-t1 #2.5h
@@ -71,8 +71,9 @@ data_part <- data_part %>% # add hypotheses
                              n = n_sample, 
                              hypothesis = H)),
          BF1u = BF_result$BFtu_confirmatory[[1]],
-         PMP1c = BF_result$PHP_confirmatory[[1]]) %>%
-  select(-c(s_mu, s_Sigma, BF_result))
+         BF1c = BF_result$BFtu_confirmatory[[1]]/BF_result$BFtu_confirmatory[[2]],
+         PMP1c = BF1c/(BF1c+1)) %>%
+  dplyr::select(-c(s_mu, s_Sigma, BF_result))
 
 
 t2 <- Sys.time()
@@ -93,5 +94,5 @@ agg_part <- data_part %>%
             BES_PMP1c = mean(BES_PMP1c),
             BES_PMP1u = mean(BES_PMP1u))
 
-save(data_part, agg_part, file = "../data/data_part_2500_switch_m_f.RData")
+#save(data_part, agg_part, file = "../data/data_part_2500_switch_m_f.RData")
 rm(data_part, agg_part)
