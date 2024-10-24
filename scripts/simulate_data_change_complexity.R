@@ -11,7 +11,7 @@ h_s2 <- "mu_m > mu_f"
 h_s3 <- "mu_f > mu_t"
 H <- "mu_s > mu_m > mu_f > mu_t"
 
-nsim <- 1e4
+nsim <- 2500
 
 # Simulate Data Partial Hypotheses
 t1 <- Sys.time()
@@ -55,5 +55,5 @@ agg_part <- data_part %>%
             BES_PMP1c = mean(BES_PMP1c),
             BES_PMP1u = mean(BES_PMP1u))
 
-save(data_part, agg_part, file = "../data/data_part_10k_change_complexity.RData")
+save(data_part, agg_part, file = "../data/data_part_2500_change_complexity.RData")
 rm(data_part, agg_part)
