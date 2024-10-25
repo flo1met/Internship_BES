@@ -17,10 +17,10 @@ library(tidyquant)
 ```{r}
 # Calculate Error Measures
 data_comp_filt <- data_comp %>% filter(n_sample %in% c(75, 150, 300, 1500)) %>%
-  select(c(nsim, n_sample, d, c, PMP1c))
+  dplyr::select(c(nsim, n_sample, d, c, PMP1c))
 data_part_filt <- data_part %>% filter(study == 3 & n_sample != 5000) %>%
   mutate(n_sample = n_sample*3) %>%
-  select(c(nsim, n_sample, d, c, BES_PMP1c))
+  dplyr::select(c(nsim, n_sample, d, c, BES_PMP1c))
 
 data_error <- left_join(data_comp_filt, data_part_filt) %>%
   group_by(n_sample, d, c) %>%
@@ -121,11 +121,11 @@ data_part %>%
 ## QQ Plot
 comp_filtered <- data_comp %>%
   filter(study == 3 & n_sample %in% c(75, 150, 300, 1500), c == 0.2, d == 0.2) %>%
-  select(n_sample, PMP1u, nsim)
+  dplyr::select(n_sample, PMP1u, nsim)
 
 part_filtered <- data_part %>%
   filter(study == 3 & n_sample != 5000, c == 0.2, d == 0.2) %>% ungroup %>%
-  select(n_sample, BES_PMP1u, nsim) 
+  dplyr::select(n_sample, BES_PMP1u, nsim) 
 part_filtered$n_sample <- part_filtered$n_sample*3
 
 merged_data <- comp_filtered %>%
@@ -270,11 +270,11 @@ data_part %>%
 ## QQ plot
 comp_filtered <- data_comp %>%
   filter(study == 3 & n_sample %in% c(75, 150, 300, 1500), c == 0.2, d == 0.2) %>%
-  select(n_sample, PMP1c, nsim)
+  dplyr::select(n_sample, PMP1c, nsim)
 
 part_filtered <- data_part %>%
   filter(study == 3 & n_sample != 5000, c == 0.2, d == 0.2) %>% ungroup %>%
-  select(n_sample, BES_PMP1c, nsim) 
+  dplyr::select(n_sample, BES_PMP1c, nsim) 
 part_filtered$n_sample <- part_filtered$n_sample*3
 
 merged_data <- comp_filtered %>%

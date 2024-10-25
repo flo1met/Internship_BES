@@ -14,54 +14,12 @@ library(ggthemes)
 library(tidyquant)
 ```
 
-# corrected measurement error
-```{r}
-# Calculate Error Measures
-data_comp_filt <- data_comp %>% filter(n_sample %in% c(75, 150, 300, 1500)) %>%
-  select(c(nsim, n_sample, d, c, PMP1c))
-data_part_filt <- data_part %>% filter(study == 3 & n_sample != 5000) %>%
-  mutate(n_sample = n_sample*3) %>%
-  select(c(nsim, n_sample, d, c, BES_PMP1c))
-
-data_error <- left_join(data_comp_filt, data_part_filt) %>%
-  group_by(n_sample, d, c) %>%
-  mutate(
-    MAE = abs(PMP1c - BES_PMP1c), # mean average error
-    MSE = (PMP1c - BES_PMP1c)^2, # mean squared error
-    MAPE = abs((PMP1c - BES_PMP1c) / PMP1c) * 100 # mean average percentage error
-  )
-
-agg_errors <- data_error %>%
-  summarise(MAE = mean(MAE),
-            MSE = mean(MSE),
-            MAPE = mean(MAPE))
-```
-
 
 ```{r}
-# boxplot
-data_error %>% filter(d == 0.2, c == 0.2) %>%
-  ggplot(aes(x = as.factor(n_sample), y = MAPE)) +
-  stat_summary(aes(x = as.factor(n_sample), y = MAPE), 
-               fun = mean, 
-               geom = "line", 
-               group = 1, 
-               linewidth = 0.2) +
-  geom_boxplot(outlier.alpha = 0.3) +
-  ylim(NA, 100) + # 25 outliers are removed
-  labs(x = "Sample Size (total)", y = "Mean Average Error Percentage (%)") +
-  theme_minimal()
+data_part$BES_PMP1c[data_part$BF1c == Inf] <- 1 # set BES_PMP1c to 1 when BF1c is Inf, as this creates NaN
 
-agg_errors %>% filter(d != 0) %>% ggplot() +
-  geom_line(aes(x = as.factor(n_sample), y = MAPE, color = as.factor(d), group = 1)) +
-  labs(x = "Effect Size", y = "Correlation") +
-  scale_color_discrete(guide = "none") +
-  theme_bw() +
-  facet_grid(c~ d) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
+findNaN <- data_part %>% filter(BES_PMP1c == "NaN")
 ```
-
 
 # H1 against unconstrained
 ```{r}
@@ -78,7 +36,7 @@ aggRes %>% ggplot() +
   geom_line(aes(x = as.factor(n_sample), y = PMP1u.y, linetype = "Complete", color = as.factor(d), group = 1)) +
   geom_line(aes(x = as.factor(n_sample), y = BES_PMP1u, linetype = "Partial", color = as.factor(d), group = 1)) +
   scale_linetype_manual(name = "Hypothesis", values = c("Complete" = "solid", "Partial" = "longdash")) +
-  geom_hline(yintercept = 8/(8+1), color = "black", linetype = "dotted", alpha = 0.5) +
+  #geom_hline(yintercept = 8/(8+1), color = "black", linetype = "dotted", alpha = 0.5) +
   labs(x = "Effect Size", y = "Correlation") +
   scale_color_discrete(guide = "none") +
   theme_bw() +
@@ -112,7 +70,7 @@ data_part %>%
                group = 1, 
                linewidth = 0.2) +
   geom_boxplot(outlier.alpha = 0.3) +
-  geom_hline(yintercept = 8/(8+1), color = "black", linetype = "dashed", alpha = 0.8) +
+  #geom_hline(yintercept = 8/(8+1), color = "black", linetype = "dashed", alpha = 0.8) +
   ylim(0, 1) + 
   labs(x = "Sample Size (per Study)", y = "Posterior Model Probabilities") +
   theme_minimal()
@@ -122,11 +80,11 @@ data_part %>%
 ## QQ Plot
 comp_filtered <- data_comp %>%
   filter(study == 3 & n_sample %in% c(75, 150, 300, 1500), c == 0.2, d == 0.2) %>%
-  select(n_sample, PMP1u, nsim)
+  dplyr::select(n_sample, PMP1u, nsim)
 
 part_filtered <- data_part %>%
   filter(study == 3 & n_sample != 5000, c == 0.2, d == 0.2) %>% ungroup %>%
-  select(n_sample, BES_PMP1u, nsim) 
+  dplyr::select(n_sample, BES_PMP1u, nsim) 
 part_filtered$n_sample <- part_filtered$n_sample*3
 
 merged_data <- comp_filtered %>%
@@ -215,6 +173,7 @@ data_part %>%
 ```
 
 
+
 # H1 against complement
 ```{r}
 # Lineplot
@@ -271,11 +230,11 @@ data_part %>%
 ## QQ plot
 comp_filtered <- data_comp %>%
   filter(study == 3 & n_sample %in% c(75, 150, 300, 1500), c == 0.2, d == 0.2) %>%
-  select(n_sample, PMP1c, nsim)
+  dplyr::select(n_sample, PMP1c, nsim)
 
 part_filtered <- data_part %>%
   filter(study == 3 & n_sample != 5000, c == 0.2, d == 0.2) %>% ungroup %>%
-  select(n_sample, BES_PMP1c, nsim) 
+  dplyr::select(n_sample, BES_PMP1c, nsim) 
 part_filtered$n_sample <- part_filtered$n_sample*3
 
 merged_data <- comp_filtered %>%
