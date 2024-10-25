@@ -94,5 +94,5 @@ agg_part <- data_part %>%
             BES_PMP1c = mean(BES_PMP1c),
             BES_PMP1u = mean(BES_PMP1u))
 
-#save(data_part, agg_part, file = "../data/data_part_2500_switch_m_f.RData")
+save(data_part, agg_part, file = "../data/data_part_2500_switch_m_f.RData")
 rm(data_part, agg_part)
