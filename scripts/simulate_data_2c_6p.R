@@ -19,9 +19,15 @@ nsim <- 2500
 t1 <- Sys.time()
 data_comp <- simulate(nsim = nsim,
                       study = 2:3,
-                      n_sample = c(25, 75, 50, 150, 100, 300, 500, 1500, 5000, 15000),
-                      d = c(0, 0.2, 0.5, 0.8),
-                      c = c(0, 0.2, 0.5, 0.8))
+                      n_sample = c(25, 75, 50, 150, 100, 300, 500, 1500),
+                      d = c(0.2),
+                      c = c(0.2))
+# indicate of complete hypothesis is true
+data_comp$ind <- NA
+for (i in 1:nrow(data_comp)) {
+  data_comp$ind[i] <- ifelse(data_comp$s_mu[[i]][1] > data_comp$s_mu[[i]][2] && data_comp$s_mu[[i]][2] > data_comp$s_mu[[i]][3] && data_comp$s_mu[[i]][3] > data_comp$s_mu[[i]][4], 1, 0)
+}
+
 
 
 data_comp <- data_comp %>% # add hypotheses
@@ -61,9 +67,16 @@ rm(data_comp, agg_comp)
 t1 <- Sys.time()
 data_part <- simulate(nsim = nsim,
                       study = 1:6,
-                      n_sample = c(25, 50, 100, 500, 5000),
-                      d = c(0, 0.2, 0.5, 0.8),
-                      c = c(0, 0.2, 0.5, 0.8))
+                      n_sample = c(25, 50, 100, 500),
+                      d = c(0.2),
+                      c = c(0.2))
+
+# indicate of complete hypothesis is true
+data_part$ind <- NA
+for (i in 1:nrow(data_part)) {
+  data_part$ind[i] <- ifelse(data_part$s_mu[[i]][1] > data_part$s_mu[[i]][2] && data_part$s_mu[[i]][2] > data_part$s_mu[[i]][3] && data_part$s_mu[[i]][3] > data_part$s_mu[[i]][4], 1, 0)
+}
+
 
 
 data_part <- data_part %>% # add hypotheses

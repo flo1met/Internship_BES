@@ -1,0 +1,124 @@
+---
+title: "Untitled"
+format: html
+---
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+```
+
+# 1. Switch $\mu_m$ and $\mu_f$
+```{r}
+load("../data/data_comp_2500_switch_m_f.RData")
+load("../data/data_part_2500_switch_m_f.RData")
+```
+
+```{r}
+test <- data_part %>%
+  mutate(BES_BF1u = cumprod(BF1u),
+         BES_PMP1u_2 = BES_BF1u/(BES_BF1u+1))
+
+
+```
+
+
+```{r}
+agg_part <- data_part$BES_PMP1c[data_part$BES_PMP1c == "NaN"] <- NA
+
+agg_part <- data_part %>%
+  group_by(d, c, n_sample, study) %>%
+  summarise(BF1u = mean(BF1u, na.rm = TRUE),
+            PMP1c = mean(PMP1c, na.rm = TRUE),
+            PMP1u = mean(PMP1u, na.rm = TRUE),
+            BES_PMP1c = mean(BES_PMP1c, na.rm = TRUE),
+            BES_PMP1u = mean(BES_PMP1u, na.rm = TRUE))
+
+# Lineplot
+agg_part_filt <- agg_part %>% filter(study == 3 & n_sample != 5000)
+agg_part_filt$n_sample <- agg_part_filt$n_sample*3
+
+agg_comp_filt <- agg_comp %>% filter(n_sample %in% c(75, 150, 300, 1500))
+
+
+aggRes <- left_join(agg_part_filt, agg_comp_filt, by = c("d", "c", "n_sample"))
+
+aggRes %>% ggplot() +
+  geom_line(aes(x = as.factor(n_sample), y = PMP1u.y, linetype = "Complete", color = as.factor(d), group = 1)) +
+  geom_line(aes(x = as.factor(n_sample), y = BES_PMP1u, linetype = "Partial", color = as.factor(d), group = 1)) +
+  scale_linetype_manual(name = "Hypothesis", values = c("Complete" = "solid", "Partial" = "longdash")) +
+  #geom_hline(yintercept = 8/(8+1), color = "black", linetype = "dotted", alpha = 0.5) +
+  labs(x = "Effect Size", y = "Correlation") +
+  scale_color_discrete(guide = "none") +
+  theme_bw() +
+  facet_grid(c~ d) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+aggRes %>% ggplot() +
+  geom_line(aes(x = as.factor(n_sample), y = PMP1c.y, linetype = "Complete", color = as.factor(d), group = 1)) +
+  geom_line(aes(x = as.factor(n_sample), y = BES_PMP1c, linetype = "Partial", color = as.factor(d), group = 1)) +
+  scale_linetype_manual(name = "Hypothesis", values = c("Complete" = "solid", "Partial" = "longdash")) +
+  #geom_hline(yintercept = 8/(8+1), color = "black", linetype = "dotted", alpha = 0.5) +
+  labs(x = "Effect Size", y = "Correlation") +
+  scale_color_discrete(guide = "none") +
+  theme_bw() +
+  facet_grid(c~ d) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+# 2. change complexity
+```{r}
+load("../data/data_comp_2500.RData")
+load("../data/data_part_2500_change_complexity.RData")
+```
+
+```{r}
+# Lineplot
+agg_part_filt <- agg_part %>% filter(study == 3 & n_sample != 5000)
+agg_part_filt$n_sample <- agg_part_filt$n_sample*3
+
+agg_comp_filt <- agg_comp %>% filter(n_sample %in% c(75, 150, 300, 1500))
+
+
+aggRes <- left_join(agg_part_filt, agg_comp_filt, by = c("d", "c", "n_sample"))
+
+aggRes %>% ggplot() +
+  geom_line(aes(x = as.factor(n_sample), y = PMP1u.y, linetype = "Complete", color = as.factor(d), group = 1)) +
+  geom_line(aes(x = as.factor(n_sample), y = BES_PMP1u, linetype = "Partial", color = as.factor(d), group = 1)) +
+  scale_linetype_manual(name = "Hypothesis", values = c("Complete" = "solid", "Partial" = "longdash")) +
+  #geom_hline(yintercept = 8/(8+1), color = "black", linetype = "dotted", alpha = 0.5) +
+  labs(x = "Effect Size", y = "Correlation") +
+  scale_color_discrete(guide = "none") +
+  theme_bw() +
+  facet_grid(c~ d) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+# 3. 2c 6p
+```{r}
+load("../data/data_comp_2500_2c_6p.RData")
+load("../data/data_part_2500_2c_6p.RData")
+```
+
+```{r}
+# Lineplot
+agg_part_filt <- agg_part %>% filter(study == 6 & n_sample != 5000)
+agg_part_filt$n_sample <- agg_part_filt$n_sample*3
+
+agg_comp_filt <- agg_comp %>% filter(study == 3 & n_sample %in% c(75, 150, 300, 1500))
+
+
+aggRes <- left_join(agg_part_filt, agg_comp_filt, by = c("d", "c", "n_sample"))
+
+aggRes %>% ggplot() +
+  geom_line(aes(x = as.factor(n_sample), y = BES_PMP1u.y, linetype = "Complete", color = as.factor(d), group = 1)) +
+  geom_line(aes(x = as.factor(n_sample), y = BES_PMP1u.x, linetype = "Partial", color = as.factor(d), group = 1)) +
+  scale_linetype_manual(name = "Hypothesis", values = c("Complete" = "solid", "Partial" = "longdash")) +
+  #geom_hline(yintercept = 8/(8+1), color = "black", linetype = "dotted", alpha = 0.5) +
+  labs(x = "Effect Size", y = "Correlation") +
+  scale_color_discrete(guide = "none") +
+  theme_bw() +
+  facet_grid(c~ d) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
