@@ -1,7 +1,7 @@
 library(MASS)
 library(tidyverse)
 library(BFpack)
-source("function.R")
+source("scripts/function.R")
 
 set.seed(1337)
 
@@ -61,5 +61,5 @@ agg_part <- data_part %>%
             BES_PMP1c = mean(BES_PMP1c),
             BES_PMP1u = mean(BES_PMP1u))
 
-save(data_part, agg_part, file = "../data/data_part_2500_change_complexity.RData")
+save(data_part, agg_part, file = "data/data_part_2500_change_complexity.RData")
 rm(data_part, agg_part)

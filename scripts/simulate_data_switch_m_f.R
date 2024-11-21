@@ -8,7 +8,7 @@
 library(MASS)
 library(tidyverse)
 library(BFpack)
-source("function.R")
+source("scripts/function.R")
 
 set.seed(1337)
 
@@ -104,7 +104,7 @@ agg_comp <- data_comp %>%
             BF1c_null = mean(BF1c_null),
             PMP1c_null = mean(PMP1c_null))
 
-save(data_comp, agg_comp, file = "../data/data_comp_2500_switch_m_f.RData")
+save(data_comp, agg_comp, file = "data/data_comp_2500_switch_m_f.RData")
 rm(data_comp, agg_comp)
 
 # Simulate Data Partial Hypotheses
@@ -156,5 +156,5 @@ agg_part <- data_part %>%
             BES_PMP1c = mean(BES_PMP1c),
             BES_PMP1u = mean(BES_PMP1u))
 
-save(data_part, agg_part, file = "../data/data_part_2500_switch_m_f.RData")
+save(data_part, agg_part, file = "data/data_part_2500_switch_m_f.RData")
 rm(data_part, agg_part)
