@@ -1,0 +1,244 @@
+---
+title: "Untitled"
+format: html
+---
+
+## Quarto
+```{r}
+load("../data/sim_comp_02_2500.Rdata")
+library(tidyverse)
+library(ggplot2)
+library(ggdist)
+library(ggthemes)
+library(tidyquant)
+```
+
+
+
+
+```{r}
+data %>% 
+  filter(study == 3, n_sample %in% c(75, 150, 300, 1500)) %>%
+  ggplot(aes(y = factor(n_sample), x = PMP1c_comp, fill = factor(ind))) +
+  
+  geom_boxplot(
+    width = 0.12,
+    # removing outliers
+    outlier.color = NA,
+    alpha = 0.5
+  ) +
+  
+  stat_dots(
+    # ploting on left side
+    side = "right",
+    # adjusting position
+    justification = 1.2,
+    # adjust grouping (binning) of observations
+    #binwidth = 0.25
+    alpha = 0.2
+  ) +
+  
+  # Themes and Labels
+  scale_fill_tq() +
+  theme_tq() +
+  labs(
+    title = "Complete Hypothesis: PMPs against complement",
+    x = "PMP1c",
+    y = "Sample Size",
+    fill = "Sample Size"
+  ) +
+  
+  facet_wrap(~ n_sample, scales = "free") +
+  theme(
+    axis.ticks.y = element_blank(), 
+    axis.text.y = element_blank())
+
+data %>% 
+  filter(study == 3, n_sample %in% c(25, 50, 100, 500)) %>%
+  ggplot(aes(y = factor(n_sample), x = BES_PMP1u_part, fill = factor(ind))) +
+  
+  geom_boxplot(
+    width = 0.15,
+    # removing outliers
+    outlier.color = NA,
+    alpha = 0.5
+  ) +
+  
+  stat_dots(
+    # ploting on left side
+    side = "right",
+    # adjusting position
+    justification = 1.2,
+    # adjust grouping (binning) of observations
+    #binwidth = 0.25
+    alpha = 0.2
+  ) +
+  
+  # Themes and Labels
+  scale_fill_tq() +
+  theme_tq() +
+  labs(
+    title = "BES Hypothesis: PMPs against unconstrained",
+    x = "PMP1u",
+    y = "Sample Size",
+    fill = "Sample Size"
+  ) +
+  
+  facet_wrap(~ n_sample, scales = "free") +
+  theme(
+    axis.ticks.y = element_blank(), 
+    axis.text.y = element_blank())
+
+```
+
+
+
+```{r}
+data %>% 
+  filter(study == 3, n_sample %in% c(75, 150, 300, 1500)) %>%
+  ggplot(aes(y = factor(n_sample), x = PMP1c_comp, fill = factor(n_sample))) +
+  
+  geom_boxplot(
+    width = 0.12,
+    # removing outliers
+    outlier.color = NA,
+    alpha = 0.5
+  ) +
+  
+  stat_dots(
+    # ploting on left side
+    side = "right",
+    # adjusting position
+    justification = 1.2,
+    # adjust grouping (binning) of observations
+    #binwidth = 0.25
+    alpha = 0.2
+  ) +
+  
+  # Themes and Labels
+  scale_fill_tq() +
+  theme_tq() +
+  labs(
+    title = "Complete Hypothesis: PMPs against complement",
+    x = "PMP1c",
+    y = "Sample Size",
+    fill = "Sample Size"
+  ) +
+  
+  facet_wrap(~ n_sample, scales = "free") +
+  theme(
+    axis.ticks.y = element_blank(), 
+    axis.text.y = element_blank())
+
+data %>% 
+  filter(study == 3, n_sample %in% c(25, 50, 100, 500)) %>%
+  ggplot(aes(y = factor(n_sample), x = BES_PMP1u_part, fill = factor(n_sample))) +
+  
+  geom_boxplot(
+    width = 0.15,
+    # removing outliers
+    outlier.color = NA,
+    alpha = 0.5
+  ) +
+  
+  stat_dots(
+    # ploting on left side
+    side = "right",
+    # adjusting position
+    justification = 1.2,
+    # adjust grouping (binning) of observations
+    #binwidth = 0.25
+    alpha = 0.2
+  ) +
+  
+  # Themes and Labels
+  scale_fill_tq() +
+  theme_tq() +
+  labs(
+    title = "Complete Hypothesis: PMPs against unconstrained",
+    x = "PMP1c",
+    y = "Sample Size",
+    fill = "Sample Size"
+  ) +
+  
+  facet_wrap(~ n_sample, scales = "free") +
+  theme(
+    axis.ticks.y = element_blank(), 
+    axis.text.y = element_blank())
+```
+
+
+
+
+
+
+
+#######################b
+```{r}
+data %>% 
+  filter(study == 3, n_sample %in% c(25, 50, 100, 500)) %>%
+  ggplot(aes(y = factor(n_sample), x = BES_PMP1u_part, fill = factor(ind))) +
+  
+  # Adjusted boxplot
+  geom_boxplot(
+    width = 0.1,                  # Slimmer boxplots
+    position = position_nudge(x = -0.2), # Move boxplots to the left
+    outlier.color = NA,           # Remove outliers
+    alpha = 0.5                   # Transparency
+  ) +
+  
+  # Adjusted dots
+  stat_dots(
+    side = "right",               # Plot on the right side
+    justification = 1.4,          # Move dots slightly to avoid overlap
+    binwidth = NA,              # Adjust grouping of dots
+    alpha = 0.2                   # Transparency for dots
+  ) +
+  
+  # Themes and Labels
+  scale_fill_tq() +
+  theme_tq() +
+  labs(
+    title = "Complete Hypothesis: PMPs against complement",
+    x = "PMP1c",
+    y = "Sample Size",
+    fill = "Sample Size"
+  ) +
+  
+  facet_wrap(~ n_sample, scales = "free") +
+  theme(
+    axis.ticks.y = element_blank(), 
+    axis.text.y = element_blank()
+  )
+
+```
+
+
+
+
+# corrected measurement error
+```{r}
+# Calculate Error Measures
+data_comp_filt <- data %>% filter(study == 3 & n_sample %in% c(75, 150, 300, 1500)) %>%
+  dplyr::select(c(nsim, n_sample, d, c, PMP1c_comp))
+data_part_filt <- data %>% filter(study == 3 & n_sample %in% c(25, 50, 100, 500)) %>%
+  mutate(n_sample = n_sample*3) %>%
+  dplyr::select(c(nsim, n_sample, d, c, BES_PMP1c_part))
+
+data_error <- left_join(data_comp_filt, data_part_filt) %>%
+  group_by(n_sample, nsim) %>%
+  mutate(
+    MAE = abs(PMP1c_comp - BES_PMP1c_part), # mean average error
+    MSE = (PMP1c_comp - BES_PMP1c_part)^2, # mean squared error
+    MAPE = abs((PMP1c_comp - BES_PMP1c_part) / PMP1c_comp) * 100, # mean average percentage error
+    MSD = PMP1c_comp - BES_PMP1c_part # mean signed difference
+  ) %>%
+  ungroup()
+
+agg_errors2 <- data_error %>%
+  group_by(n_sample) %>%
+  summarise(MAE = mean(MAE),
+            MSE = mean(MSE),
+            MAPE = mean(MAPE),
+            MSD = mean(MSD))
+```

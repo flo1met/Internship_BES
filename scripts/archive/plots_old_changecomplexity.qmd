@@ -1,0 +1,364 @@
+---
+title: "plots_new_changecomplexity"
+format: html
+---
+
+```{r}
+load("../../data/archive/data_comp_2500.RData")
+load("../../data/archive/data_part_2500_change_complexity.RData")
+library(tidyverse)
+library(ggplot2)
+library(ggdist)
+library(ggthemes)
+library(tidyquant)
+```
+
+# corrected measurement error
+```{r}
+# Calculate Error Measures
+data_comp_filt <- data_comp %>% filter(n_sample %in% c(75, 150, 300, 1500)) %>%
+  dplyr::select(c(nsim, n_sample, d, c, PMP1c))
+data_part_filt <- data_part %>% filter(study == 3 & n_sample != 5000) %>%
+  mutate(n_sample = n_sample*3) %>%
+  dplyr::select(c(nsim, n_sample, d, c, BES_PMP1c))
+
+data_error <- left_join(data_comp_filt, data_part_filt) %>%
+  group_by(n_sample, d, c) %>%
+  mutate(
+    MAE = abs(PMP1c - BES_PMP1c), # mean average error
+    MSE = (PMP1c - BES_PMP1c)^2, # mean squared error
+    MAPE = abs((PMP1c - BES_PMP1c) / PMP1c) * 100 # mean average percentage error
+  )
+
+agg_errors <- data_error %>%
+  summarise(MAE = mean(MAE),
+            MSE = mean(MSE),
+            MAPE = mean(MAPE))
+```
+
+
+```{r}
+# boxplot
+data_error %>% filter(d == 0.2, c == 0.2) %>%
+  ggplot(aes(x = as.factor(n_sample), y = MAPE)) +
+  stat_summary(aes(x = as.factor(n_sample), y = MAPE), 
+               fun = mean, 
+               geom = "line", 
+               group = 1, 
+               linewidth = 0.2) +
+  geom_boxplot(outlier.alpha = 0.3) +
+  ylim(NA, 100) + # 25 outliers are removed
+  labs(x = "Sample Size (total)", y = "Mean Average Error Percentage (%)") +
+  theme_minimal()
+
+agg_errors %>% filter(d != 0) %>% ggplot() +
+  geom_line(aes(x = as.factor(n_sample), y = MAPE, color = as.factor(d), group = 1)) +
+  labs(x = "Effect Size", y = "Correlation") +
+  scale_color_discrete(guide = "none") +
+  theme_bw() +
+  facet_grid(c~ d) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+
+# H1 against unconstrained
+```{r}
+# Lineplot
+agg_part_filt <- agg_part %>% filter(study == 3 & n_sample != 5000)
+agg_part_filt$n_sample <- agg_part_filt$n_sample*3
+
+agg_comp_filt <- agg_comp %>% filter(n_sample %in% c(75, 150, 300, 1500))
+
+
+aggRes <- left_join(agg_part_filt, agg_comp_filt, by = c("d", "c", "n_sample"))
+
+aggRes %>% ggplot() +
+  geom_line(aes(x = as.factor(n_sample), y = PMP1u.y, linetype = "Complete", color = as.factor(d), group = 1)) +
+  geom_line(aes(x = as.factor(n_sample), y = BES_PMP1u, linetype = "Partial", color = as.factor(d), group = 1)) +
+  scale_linetype_manual(name = "Hypothesis", values = c("Complete" = "solid", "Partial" = "longdash")) +
+  #geom_hline(yintercept = 8/(8+1), color = "black", linetype = "dotted", alpha = 0.5) +
+  labs(x = "Effect Size", y = "Correlation") +
+  scale_color_discrete(guide = "none") +
+  theme_bw() +
+  facet_grid(c~ d) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+```{r}
+# Boxplots
+data_comp %>% 
+  filter(study == 3, n_sample %in% c(75, 150, 300, 1500), c == 0.2, d == 0.2) %>%
+  ggplot(aes(x = as.factor(n_sample), y = PMP1u)) +
+  stat_summary(aes(x = as.factor(n_sample), y = PMP1u), 
+               fun = mean, 
+               geom = "line", 
+               group = 1, 
+               linewidth = 0.2) +
+  geom_boxplot(outlier.alpha = 0.3) +
+  geom_hline(yintercept = 24/(24+1), color = "black", linetype = "dashed", alpha = 0.8) +
+  ylim(0, 1) + 
+  labs(x = "Sample Size", y = "Posterior Model Probabilities") +
+  theme_minimal()
+
+data_part %>% 
+  filter(study == 3, n_sample != 5000, c == 0.2, d == 0.2) %>%
+  ggplot(aes(x = as.factor(n_sample), y = BES_PMP1u)) +
+  stat_summary(aes(x = as.factor(n_sample), y = BES_PMP1u), 
+               fun = mean, 
+               geom = "line", 
+               group = 1, 
+               linewidth = 0.2) +
+  geom_boxplot(outlier.alpha = 0.3) +
+  #geom_hline(yintercept = 8/(8+1), color = "black", linetype = "dashed", alpha = 0.8) +
+  ylim(0, 1) + 
+  labs(x = "Sample Size (per Study)", y = "Posterior Model Probabilities") +
+  theme_minimal()
+```
+
+```{r}
+## QQ Plot
+comp_filtered <- data_comp %>%
+  filter(study == 3 & n_sample %in% c(75, 150, 300, 1500), c == 0.2, d == 0.2) %>%
+  dplyr::select(n_sample, PMP1u, nsim)
+
+part_filtered <- data_part %>%
+  filter(study == 3 & n_sample != 5000, c == 0.2, d == 0.2) %>% ungroup %>%
+  dplyr::select(n_sample, BES_PMP1u, nsim) 
+part_filtered$n_sample <- part_filtered$n_sample*3
+
+merged_data <- comp_filtered %>%
+  inner_join(part_filtered, by = c("n_sample", "nsim"), suffix = c("_comp", "_part"))
+
+ggplot(merged_data, aes(sample = BES_PMP1u)) +
+  geom_qq(aes(sample = PMP1u)) +
+  geom_qq_line(aes(sample = PMP1u), color = "red") +
+  facet_wrap(~ n_sample) + 
+  labs(x = "Quantiles Complete Hypothesis", y = "Quantiles Partial Hypotheses",
+       title = "Q-Q Plot: PMPs against unconstrained") +
+  theme_minimal()
+```
+
+```{r}
+## Raincloud Plots
+data_comp %>% 
+  filter(study == 3, n_sample %in% c(75, 150, 300, 1500), c == 0.2, d == 0.2) %>%
+  ggplot(aes(y = factor(n_sample), x = PMP1u, fill = factor(n_sample))) +
+  
+  geom_boxplot(
+    width = 0.12,
+    # removing outliers
+    outlier.color = NA,
+    alpha = 0.5
+  ) +
+  
+  stat_dots(
+    # ploting on left side
+    side = "right",
+    # adjusting position
+    justification = 1.2,
+    # adjust grouping (binning) of observations
+    #binwidth = 0.25
+    alpha = 0.2
+  ) +
+  
+  # Themes and Labels
+  scale_fill_tq() +
+  theme_tq() +
+  labs(
+    title = "Complete Hypotheses: PMPs against unconstrained",
+    x = "PMP1u",
+    y = "Sample Size",
+    fill = "Sample Size"
+  ) +
+  
+  facet_wrap(~ n_sample, scales = "free") +
+  theme(
+    axis.ticks.y = element_blank(), 
+    axis.text.y = element_blank())
+
+data_part %>% 
+  filter(study == 3, n_sample != 5000, c == 0.2, d == 0.2) %>%
+  ggplot(aes(y = factor(n_sample), x = BES_PMP1u, fill = factor(n_sample))) +
+  
+  geom_boxplot(
+    width = 0.12,
+    # removing outliers
+    outlier.color = NA,
+    alpha = 0.5
+  ) +
+  
+  stat_dots(
+    # ploting on left side
+    side = "right",
+    # adjusting position
+    justification = 1.2,
+    # adjust grouping (binning) of observations
+    #binwidth = 0.25
+    alpha = 0.2
+  ) +
+  # Themes and Labels
+  scale_fill_tq() +
+  theme_tq() +
+  labs(
+    title = "Partial Hypotheses: PMPs against unconstrained",
+    x = "PMP1u",
+    y = "Sample Size",
+    fill = "Sample Size"
+  ) +
+  facet_wrap(~ n_sample, scales = "free") +
+  theme(
+    axis.ticks.y = element_blank(), 
+    axis.text.y = element_blank())
+```
+
+
+# H1 against complement
+```{r}
+# Lineplot
+agg_part_filt <- agg_part %>% filter(study == 3 & n_sample != 5000)
+agg_part_filt$n_sample <- agg_part_filt$n_sample*3
+
+agg_comp_filt <- agg_comp %>% filter(n_sample %in% c(75, 150, 300, 1500))
+
+
+aggRes <- left_join(agg_part_filt, agg_comp_filt, by = c("d", "c", "n_sample"))
+
+aggRes %>% ggplot() +
+  geom_line(aes(x = as.factor(n_sample), y = PMP1c.y, linetype = "Complete", color = as.factor(d), group = 1)) +
+  geom_line(aes(x = as.factor(n_sample), y = BES_PMP1c, linetype = "Partial", color = as.factor(d), group = 1)) +
+  scale_linetype_manual(name = "Hypothesis", values = c("Complete" = "solid", "Partial" = "longdash")) +
+  labs(x = "Effect Size", y = "Correlation") +
+  scale_color_discrete(guide = "none") +
+  theme_bw() +
+  facet_grid(c~ d) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+```{r}
+# Boxplots
+data_comp %>% 
+  filter(study == 3, n_sample %in% c(75, 150, 300, 1500), c == 0.2, d == 0.2) %>%
+  ggplot(aes(x = as.factor(n_sample), y = PMP1c)) +
+  stat_summary(aes(x = as.factor(n_sample), y = PMP1c), 
+               fun = mean, 
+               geom = "line", 
+               group = 1, 
+               linewidth = 0.2) +
+  geom_boxplot(outlier.alpha = 0.3) +
+  ylim(0, 1) + 
+  labs(x = "Sample Size", y = "Posterior Model Probabilities") +
+  theme_minimal()
+
+data_part %>% 
+  filter(study == 3, n_sample != 5000, c == 0.2, d == 0.2) %>%
+  ggplot(aes(x = as.factor(n_sample), y = BES_PMP1c)) +
+  stat_summary(aes(x = as.factor(n_sample), y = BES_PMP1c), 
+               fun = mean, 
+               geom = "line", 
+               group = 1, 
+               linewidth = 0.2) +
+  geom_boxplot(outlier.alpha = 0.3) +
+  ylim(0, 1) + 
+  labs(x = "Sample Size (per Study)", y = "Posterior Model Probabilities") +
+  theme_minimal()
+```
+
+```{r}
+## QQ plot
+comp_filtered <- data_comp %>%
+  filter(study == 3 & n_sample %in% c(75, 150, 300, 1500), c == 0.2, d == 0.2) %>%
+  dplyr::select(n_sample, PMP1c, nsim)
+
+part_filtered <- data_part %>%
+  filter(study == 3 & n_sample != 5000, c == 0.2, d == 0.2) %>% ungroup %>%
+  dplyr::select(n_sample, BES_PMP1c, nsim) 
+part_filtered$n_sample <- part_filtered$n_sample*3
+
+merged_data <- comp_filtered %>%
+  inner_join(part_filtered, by = c("n_sample", "nsim"), suffix = c("_comp", "_part"))
+
+ggplot(merged_data, aes(sample = BES_PMP1c)) +
+  geom_qq(aes(sample = PMP1c)) +
+  geom_qq_line(aes(sample = PMP1c), color = "red") +
+  facet_wrap(~ n_sample) + 
+  labs(x = "Quantiles Complete Hypothesis", y = "Quantiles Partial Hypotheses",
+       title = "Q-Q Plot: PMPs against complement") +
+  theme_minimal()
+```
+
+```{r}
+## Raincloud Plots
+data_comp %>% 
+  filter(study == 3, n_sample %in% c(75, 150, 300, 1500), c == 0.2, d == 0.2) %>%
+  ggplot(aes(y = factor(n_sample), x = PMP1c, fill = factor(n_sample))) +
+  
+  geom_boxplot(
+    width = 0.12,
+    # removing outliers
+    outlier.color = NA,
+    alpha = 0.5
+  ) +
+  
+  stat_dots(
+    # ploting on left side
+    side = "right",
+    # adjusting position
+    justification = 1.2,
+    # adjust grouping (binning) of observations
+    #binwidth = 0.25
+    alpha = 0.2
+  ) +
+  
+  # Themes and Labels
+  scale_fill_tq() +
+  theme_tq() +
+  labs(
+    title = "Complete Hypothesis: PMPs against complement",
+    x = "PMP1c",
+    y = "Sample Size",
+    fill = "Sample Size"
+  ) +
+  
+  facet_wrap(~ n_sample, scales = "free") +
+  theme(
+    axis.ticks.y = element_blank(), 
+    axis.text.y = element_blank())
+
+data_part %>% 
+  filter(study == 3, n_sample != 5000, c == 0.2, d == 0.2) %>%
+  ggplot(aes(y = factor(n_sample), x = BES_PMP1c, fill = factor(n_sample))) +
+  
+  geom_boxplot(
+    width = 0.12,
+    # removing outliers
+    outlier.color = NA,
+    alpha = 0.5
+  ) +
+  
+  stat_dots(
+    # ploting on left side
+    side = "right",
+    # adjusting position
+    justification = 1.2,
+    # adjust grouping (binning) of observations
+    #binwidth = 0.25
+    alpha = 0.2
+  ) +
+  # Themes and Labels
+  scale_fill_tq() +
+  theme_tq() +
+  labs(
+    title = "Partial Hypotheses: PMPs against complement",
+    x = "PMP1c",
+    y = "Sample Size",
+    fill = "Sample Size"
+  ) +
+  
+  facet_wrap(~ n_sample, scales = "free") +
+  theme(
+    axis.ticks.y = element_blank(), 
+    axis.text.y = element_blank())
+```

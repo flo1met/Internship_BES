@@ -1,0 +1,304 @@
+---
+title: "plots_new_comp"
+format: html
+---
+
+```{r}
+load("../data/sim_comp_02_2500.Rdata")
+library(tidyverse)
+library(ggplot2)
+library(ggdist)
+library(ggthemes)
+library(tidyquant)
+library(gridExtra)
+```
+
+# corrected measurement error
+```{r}
+# Calculate Error Measures
+data_comp_filt <- data %>% filter(study == 3 & n_sample %in% c(75, 150, 300, 1500)) %>%
+  dplyr::select(c(nsim, n_sample, PMP1c_comp))
+data_part_filt <- data %>% filter(study == 3 & n_sample %in% c(25, 50, 100, 500)) %>%
+  mutate(n_sample = n_sample*3) %>%
+  dplyr::select(c(nsim, n_sample, BES_PMP1c_part))
+
+data_error <- left_join(data_comp_filt, data_part_filt) %>%
+  group_by(n_sample, nsim) %>%
+  mutate(
+    MAE = abs(PMP1c_comp - BES_PMP1c_part), # mean average error
+    MSE = (PMP1c_comp - BES_PMP1c_part)^2, # mean squared error
+    MAPE = abs((PMP1c_comp - BES_PMP1c_part) / PMP1c_comp) * 100, # mean average percentage error
+    MSD = PMP1c_comp - BES_PMP1c_part,
+    MSDP = ((BES_PMP1c_part - PMP1c_comp)/PMP1c_comp) * 100 # mean signed difference# mean signed difference
+  ) %>% ungroup()
+
+agg_errors <- data_error %>%
+  group_by(n_sample) %>%
+  summarise(MAE = mean(MAE),
+            MSE = mean(MSE),
+            MAPE = mean(MAPE),
+            MSD = mean(MSD),
+            MSDP = mean(MSDP))
+```
+
+
+```{r}
+# boxplot
+data_error %>%
+  ggplot(aes(x = as.factor(n_sample), y = MAPE)) +
+  stat_summary(aes(x = as.factor(n_sample), y = MAPE), 
+               fun = mean, 
+               geom = "line", 
+               group = 1, 
+               linewidth = 0.2) +
+  geom_boxplot(outlier.alpha = 0.3) +
+  ylim(NA, 100) + # 25 outliers are removed
+  labs(x = "Sample Size (total)", y = "Mean Average Percentage Error (%)") +
+  theme_minimal()
+
+# lineplot
+agg_errors %>% ggplot() +
+  geom_line(aes(x = as.factor(n_sample), y = MAPE, group = 1)) +
+  labs(x = "Mean Average Percentage Error (%)", y = "Sample Size (total)") +
+  scale_color_discrete(guide = "none") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# boxplot
+data_error %>%
+  ggplot(aes(x = as.factor(n_sample), y = MSDP)) +
+  stat_summary(aes(x = as.factor(n_sample), y = MSDP), 
+               fun = mean, 
+               geom = "line", 
+               group = 1, 
+               linewidth = 0.2) +
+  geom_boxplot(outlier.alpha = 0.3) +
+  labs(x = "Sample Size (total)", y = "Mean Signed Difference (%)") +
+  theme_minimal()
+
+# lineplot
+agg_errors %>% ggplot() +
+  geom_line(aes(x = as.factor(n_sample), y = MSDP, group = 1)) +
+  labs(x = "Sample Size (total)", y = "Mean Signed Difference (%)") +
+  scale_color_discrete(guide = "none") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+
+## Boxplots
+```{r}
+# Boxplots
+pbcu <- data %>% 
+  filter(study == 3, n_sample %in% c(75, 150, 300, 1500)) %>%
+  ggplot(aes(x = as.factor(n_sample), y = PMP1u_comp)) +
+  stat_summary(aes(x = as.factor(n_sample), y = PMP1u_comp), 
+               fun = mean, 
+               geom = "line", 
+               group = 1, 
+               linewidth = 0.2) +
+  geom_boxplot(outlier.alpha = 0.3) +
+  geom_hline(yintercept = 24/(24+1), color = "black", linetype = "dashed", alpha = 0.8) +
+  ylim(0, 1) + 
+  labs(title = "Complete hypothesis against unconstrained", x = "", y = "Posterior Model Probabilities") +
+  theme_minimal()
+
+pbpu <- data %>% 
+  filter(study == 3, n_sample %in% c(25, 50, 100, 500)) %>%
+  ggplot(aes(x = as.factor(n_sample), y = BES_PMP1u_part)) +
+  stat_summary(aes(x = as.factor(n_sample), y = BES_PMP1u_part), 
+               fun = mean, 
+               geom = "line", 
+               group = 1, 
+               linewidth = 0.2) +
+  geom_boxplot(outlier.alpha = 0.3) +
+  geom_hline(yintercept = 8/(8+1), color = "black", linetype = "dashed", alpha = 0.8) +
+  ylim(0, 1) + 
+  labs(title = "BES against unconstrained", x = "", y = "") +
+  theme_minimal()
+
+pbcc <- data %>% 
+  filter(study == 3, n_sample %in% c(75, 150, 300, 1500)) %>%
+  ggplot(aes(x = as.factor(n_sample), y = PMP1c_comp)) +
+  stat_summary(aes(x = as.factor(n_sample), y = PMP1c_comp), 
+               fun = mean, 
+               geom = "line", 
+               group = 1, 
+               linewidth = 0.2) +
+  geom_boxplot(outlier.alpha = 0.3) +
+  ylim(0, 1) + 
+  labs(title = "Complete hypothesis against complement", x = "Sample Size", y = "Posterior Model Probabilities") +
+  theme_minimal()
+
+pbpc <- data %>% 
+  filter(study == 3, n_sample %in% c(25, 50, 100, 500)) %>%
+  ggplot(aes(x = as.factor(n_sample), y = BES_PMP1c_part)) +
+  stat_summary(aes(x = as.factor(n_sample), y = BES_PMP1c_part), 
+               fun = mean, 
+               geom = "line", 
+               group = 1, 
+               linewidth = 0.2) +
+  geom_boxplot(outlier.alpha = 0.3) +
+  ylim(0, 1) + 
+  labs(title = "BES against complement", x = "Sample Size (per Study)", y = "") +
+  theme_minimal()
+
+# plot
+grid.arrange(pbcu, pbpu, pbcc, pbpc)
+```
+
+
+```{r}
+#complement
+data %>% 
+  filter(study == 3, n_sample %in% c(75, 150, 300, 1500)) %>%
+  ggplot(aes(y = factor(n_sample), x = PMP1c_comp, fill = factor(ind))) +
+  
+  geom_boxplot(
+    width = 0.12,
+    # removing outliers
+    outlier.color = NA,
+    alpha = 0.5
+  ) +
+  
+  stat_dots(
+    # ploting on left side
+    side = "right",
+    # adjusting position
+    justification = 1.2,
+    # adjust grouping (binning) of observations
+    #binwidth = 0.25
+    alpha = 0.2
+  ) +
+  
+  # Themes and Labels
+  scale_fill_tq() +
+  theme_tq() +
+  labs(
+    title = "Complete Hypothesis: PMPs against complement",
+    x = "PMP1c",
+    y = "Sample Size",
+    fill = "Sample Size"
+  ) +
+  
+  facet_wrap(~ n_sample, scales = "free") +
+  theme(
+    axis.ticks.y = element_blank(), 
+    axis.text.y = element_blank())
+
+data %>% 
+  filter(study == 3, n_sample %in% c(25, 50, 100, 500)) %>%
+  ggplot(aes(y = factor(n_sample), x = BES_PMP1c_part, fill = factor(ind))) +
+  
+  geom_boxplot(
+    width = 0.15,
+    # removing outliers
+    outlier.color = NA,
+    alpha = 0.5
+  ) +
+  
+  stat_dots(
+    # ploting on left side
+    side = "right",
+    # adjusting position
+    justification = 1.2,
+    # adjust grouping (binning) of observations
+    #binwidth = 0.25
+    alpha = 0.2
+  ) +
+  
+  # Themes and Labels
+  scale_fill_tq() +
+  theme_tq() +
+  labs(
+    title = "BES Hypothesis: PMPs against complement",
+    x = "PMP1c",
+    y = "Sample Size",
+    fill = "Sample Size"
+  ) +
+  
+  facet_wrap(~ n_sample, scales = "free") +
+  theme(
+    axis.ticks.y = element_blank(), 
+    axis.text.y = element_blank())
+
+```
+
+```{r}
+# unconstrained
+data %>% 
+  filter(study == 3, n_sample %in% c(75, 150, 300, 1500)) %>%
+  ggplot(aes(y = factor(n_sample), x = PMP1u_comp, fill = factor(ind))) +
+  
+  geom_boxplot(
+    width = 0.12,
+    # removing outliers
+    outlier.color = NA,
+    alpha = 0.5
+  ) +
+  
+  stat_dots(
+    # ploting on left side
+    side = "right",
+    # adjusting position
+    justification = 1.2,
+    # adjust grouping (binning) of observations
+    #binwidth = 0.25
+    alpha = 0.2
+  ) +
+  
+  # Themes and Labels
+  scale_fill_tq() +
+  theme_tq() +
+  labs(
+    title = "Complete Hypothesis: PMPs against unconstrained",
+    x = "PMP1u",
+    y = "Sample Size",
+    fill = "Sample Size"
+  ) +
+  
+  facet_wrap(~ n_sample, scales = "free") +
+  theme(
+    axis.ticks.y = element_blank(), 
+    axis.text.y = element_blank())
+
+data %>% 
+  filter(study == 3, n_sample %in% c(25, 50, 100, 500)) %>%
+  ggplot(aes(y = factor(n_sample), x = BES_PMP1u_part, fill = factor(ind))) +
+  
+  geom_boxplot(
+    width = 0.15,
+    # removing outliers
+    outlier.color = NA,
+    alpha = 0.5
+  ) +
+  
+  stat_dots(
+    # ploting on left side
+    side = "right",
+    # adjusting position
+    justification = 1.2,
+    # adjust grouping (binning) of observations
+    #binwidth = 0.25
+    alpha = 0.2
+  ) +
+  
+  # Themes and Labels
+  scale_fill_tq() +
+  theme_tq() +
+  labs(
+    title = "BES Hypothesis: PMPs against unconstrained",
+    x = "PMP1u",
+    y = "Sample Size",
+    fill = "Sample Size"
+  ) +
+  
+  facet_wrap(~ n_sample, scales = "free") +
+  theme(
+    axis.ticks.y = element_blank(), 
+    axis.text.y = element_blank())
+
+```
+
+
