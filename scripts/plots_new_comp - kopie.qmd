@@ -1,0 +1,661 @@
+---
+title: "plots_new_comp"
+format: html
+---
+
+```{r}
+load("../data/sim_comp_inv_2500.Rdata")
+library(tidyverse)
+library(ggplot2)
+library(ggdist)
+library(ggthemes)
+library(tidyquant)
+library(gridExtra)
+
+#correct PMPs
+data <- data %>%
+  mutate(PMP1u_comp = BF1u_comp/(BF1u_comp + 1),
+         PMP1u_part = BF1u_part/(BF1u_part + 1)) %>%
+  group_by(nsim, n_sample, c, d) %>%
+  mutate(BES_PMP1c_part = cumprod(PMP1c_part) / (cumprod(PMP1c_part) + cumprod(1-PMP1c_part)),
+         BES_PMP1u_part = cumprod(PMP1u_part) / (cumprod(PMP1u_part) + cumprod(1-PMP1u_part))) %>%
+  ungroup()
+```
+
+
+```{r}
+# look for NaN
+data[is.nan(data$BF1u_comp),]
+data[is.nan(data$PMP1c_comp),]
+
+data[is.nan(data$BF1u_part),]
+data[is.nan(data$PMP1c_part),]
+
+data[is.nan(data$BES_PMP1c_part),]
+data[is.nan(data$BES_PMP1u_part),]
+```
+
+```{r}
+data_low_comp_c <- data %>%
+  filter(PMP1c_comp <= 0.5)
+
+data_low_part_c <- data %>%
+  filter(PMP1c_comp <= 0.5)
+
+data_low_comp_u <- data %>%
+  filter(PMP1u_comp <= 0.5)
+
+data_low_part_u <- data %>%
+  filter(PMP1u_comp <= 0.5)
+
+data_low_comp_c_1 <- data_low_comp_c %>%
+  filter(ind == 1)
+
+data_low_part_c_1 <- data_low_part_c %>%
+  filter(ind == 1)
+
+data_low_comp_u_1 <- data_low_comp_u %>%
+  filter(ind == 1)
+
+data_low_part_u_1 <- data_low_part_u %>%
+  filter(ind == 1)
+
+#all empty
+```
+
+
+
+
+# Raincloud plots
+
+## Complement
+```{r}
+#complement
+data %>% 
+  filter(study == 3, n_sample %in% c(75, 1500) & c == 0 & d == 0.2) %>%
+  ggplot(aes(y = factor(n_sample), x = PMP1c_comp, fill = factor(ind))) +
+  
+  geom_boxplot(
+    width = 0.12,
+    # removing outliers
+    outlier.color = NA,
+    alpha = 0.5
+  ) +
+  
+  stat_dots(
+    # ploting on left side
+    side = "right",
+    # adjusting position
+    justification = 1.2,
+    # adjust grouping (binning) of observations
+    #binwidth = 0.25
+    alpha = 0.2
+  ) +
+  
+  # Themes and Labels
+  scale_fill_tq() +
+  theme_tq() +
+  labs(
+    title = "Complete Hypothesis: PMPs against complement",
+    x = "PMP1c",
+    y = "Sample Size",
+    fill = "Indicator True complete Hypoethesis"
+  ) +
+  
+  facet_wrap(~ n_sample, scales = "free") +
+  theme(
+    axis.ticks.y = element_blank(), 
+    axis.text.y = element_blank())
+
+data %>% 
+  filter(study == 3, n_sample %in% c(25, 500) & c == 0 & d == 0.2) %>%
+  ggplot(aes(y = factor(n_sample), x = BES_PMP1c_part, fill = factor(ind))) +
+  
+  geom_boxplot(
+    width = 0.15,
+    # removing outliers
+    outlier.color = NA,
+    alpha = 0.5
+  ) +
+  
+  stat_dots(
+    # ploting on left side
+    side = "right",
+    # adjusting position
+    justification = 1.2,
+    # adjust grouping (binning) of observations
+    #binwidth = 0.25
+    alpha = 0.2
+  ) +
+  
+  # Themes and Labels
+  scale_fill_tq() +
+  theme_tq() +
+  labs(
+    title = "BES Hypothesis: PMPs against complement",
+    x = "PMP1c",
+    y = "Sample Size",
+    fill = "Indicator True complete Hypoethesis"
+  ) +
+  
+  facet_wrap(~ n_sample, scales = "free") +
+  theme(
+    axis.ticks.y = element_blank(), 
+    axis.text.y = element_blank())
+
+```
+In the BES we can see some red <0.5
+```{r}
+data_BES_part_low <- data %>%
+  filter(study == 3 & c == 0 & d == 0.2 & n_sample %in% c(25, 500) & BES_PMP1c_part <= 0.5)
+
+data_BES_part_low %>% filter(ind == 1 & n_sample == 500) # empty -> happens only in low samples
+data_BES_part_low %>% filter(ind == 1 & n_sample == 25)
+```
+
+```{r}
+nsim_low <- data_BES_part_low %>% filter(ind == 1 & n_sample == 25) %>% pull(nsim)
+
+# export all obs in c 0, d 0.2 nsample 25 and ind 1
+data_low_part_02_25 <- data %>% filter(c == 0 & d == 0.2 & n_sample == 25 & nsim %in% nsim_low)
+
+filtered_data <- data_low_part_02_25 %>%
+  group_by(c, d, nsim) %>%
+  filter(all(ind == 1)) %>%
+  ungroup()
+# never all ind == 1
+```
+
+likely that BES < 0.5 only happens in cases where at least 1 partial is not true 
+  -> make ind more specific, also for partial hypotheses, so we can see exactly
+```{r}
+data_low_part_02_25[7,]
+```
+
+
+## unconstrained
+```{r}
+# unconstrained
+data %>% 
+  filter(study == 3, n_sample %in% c(75, 1500) & c == 0 & d == 0.2) %>%
+  ggplot(aes(y = factor(n_sample), x = PMP1u_comp, fill = factor(ind))) +
+  
+  geom_boxplot(
+    width = 0.12,
+    # removing outliers
+    outlier.color = NA,
+    alpha = 0.5
+  ) +
+  
+  stat_dots(
+    # ploting on left side
+    side = "right",
+    # adjusting position
+    justification = 1.2,
+    # adjust grouping (binning) of observations
+    #binwidth = 0.25
+    alpha = 0.2
+  ) +
+  
+  # Themes and Labels
+  scale_fill_tq() +
+  theme_tq() +
+  labs(
+    title = "Complete Hypothesis: PMPs against unconstrained",
+    x = "PMP1u",
+    y = "Sample Size",
+    fill = "Indicator True complete Hypoethesis"
+  ) +
+  
+  facet_wrap(~ n_sample, scales = "free") +
+  theme(
+    axis.ticks.y = element_blank(), 
+    axis.text.y = element_blank())
+
+data %>%  # change y axis to group indicator
+  filter(study == 3, n_sample %in% c(25, 500) & c == 0 & d == 0.2) %>%
+  ggplot(aes(y = factor(n_sample), x = BES_PMP1u_part, fill = factor(ind))) +
+  
+  geom_boxplot(
+    width = 0.15,
+    # removing outliers
+    outlier.color = NA,
+    alpha = 0.5
+  ) +
+  
+  stat_dots(
+    # ploting on left side
+    side = "right",
+    # adjusting position
+    justification = 1.2,
+    # adjust grouping (binning) of observations
+    #binwidth = 0.25
+    alpha = 0.2
+  ) +
+  
+  # Themes and Labels
+  scale_fill_tq() +
+  theme_tq() +
+  labs(
+    title = "BES Hypothesis: PMPs against unconstrained",
+    x = "PMP1u",
+    y = "Sample Size",
+    fill = "Indicator True complete Hypoethesis"
+  ) +
+  
+  facet_wrap(~ n_sample, scales = "free") +
+  theme(
+    axis.ticks.y = element_blank(), 
+    axis.text.y = element_blank())
+
+```
+
+In the BES we can see some red <0.5
+```{r}
+data_BES_part_low_u <- data %>%
+  filter(study == 3 & c == 0 & d == 0.2 & n_sample %in% c(25, 500) & BES_PMP1u_part <= 0.5)
+
+data_BES_part_low_u %>% filter(ind == 1 & n_sample == 500) # empty -> happens only in low samples
+data_BES_part_low_u %>% filter(ind == 1 & n_sample == 25)
+```
+
+```{r}
+nsim_low_u <- data_BES_part_low_u %>% filter(ind == 1 & n_sample == 25) %>% pull(nsim)
+
+# export all obs in c 0, d 0.2 nsample 25 and ind 1
+data_low_part_02_25_u <- data %>% filter(c == 0 & d == 0.2 & n_sample == 25 & nsim %in% nsim_low_u)
+
+filtered_data_u <- data_low_part_02_25_u %>%
+  group_by(c, d, nsim) %>%
+  filter(all(ind == 1)) %>%
+  ungroup()
+# never all ind == 1
+```
+
+
+conclusion:
+```{r}
+length(nsim_low)
+length(nsim_low_u)
+```
+
+happens more often in the unconstrained scenario, only happens when at least one ind == 0, happens in the uncorrelated scenario (but only rarely)
+
+
+
+
+# look at higher effect size
+```{r}
+#complement
+data %>% 
+  filter(study == 3, n_sample %in% c(75, 1500) & c == 0 & d == 0.8) %>%
+  ggplot(aes(y = factor(n_sample), x = PMP1c_comp, fill = factor(ind))) +
+  
+  geom_boxplot(
+    width = 0.12,
+    # removing outliers
+    outlier.color = NA,
+    alpha = 0.5
+  ) +
+  
+  stat_dots(
+    # ploting on left side
+    side = "right",
+    # adjusting position
+    justification = 1.2,
+    # adjust grouping (binning) of observations
+    #binwidth = 0.25
+    alpha = 0.2
+  ) +
+  
+  # Themes and Labels
+  scale_fill_tq() +
+  theme_tq() +
+  labs(
+    title = "Complete Hypothesis: PMPs against complement",
+    x = "PMP1c",
+    y = "Sample Size",
+    fill = "Indicator True complete Hypoethesis"
+  ) +
+  
+  facet_wrap(~ n_sample, scales = "free") +
+  theme(
+    axis.ticks.y = element_blank(), 
+    axis.text.y = element_blank())
+
+data %>% 
+  filter(study == 3, n_sample %in% c(25, 500) & c == 0 & d == 0.8) %>%
+  ggplot(aes(y = factor(n_sample), x = BES_PMP1c_part, fill = factor(ind))) +
+  
+  geom_boxplot(
+    width = 0.15,
+    # removing outliers
+    outlier.color = NA,
+    alpha = 0.5
+  ) +
+  
+  stat_dots(
+    # ploting on left side
+    side = "right",
+    # adjusting position
+    justification = 1.2,
+    # adjust grouping (binning) of observations
+    #binwidth = 0.25
+    alpha = 0.2
+  ) +
+  
+  # Themes and Labels
+  scale_fill_tq() +
+  theme_tq() +
+  labs(
+    title = "BES Hypothesis: PMPs against complement",
+    x = "PMP1c",
+    y = "Sample Size",
+    fill = "Indicator True complete Hypoethesis"
+  ) +
+  
+  facet_wrap(~ n_sample, scales = "free") +
+  theme(
+    axis.ticks.y = element_blank(), 
+    axis.text.y = element_blank())
+
+```
+
+```{r}
+# unconstrained
+data %>% 
+  filter(study == 3, n_sample %in% c(75, 1500) & c == 0 & d == 0.8) %>%
+  ggplot(aes(y = factor(n_sample), x = PMP1u_comp, fill = factor(ind))) +
+  
+  geom_boxplot(
+    width = 0.12,
+    # removing outliers
+    outlier.color = NA,
+    alpha = 0.5
+  ) +
+  
+  stat_dots(
+    # ploting on left side
+    side = "right",
+    # adjusting position
+    justification = 1.2,
+    # adjust grouping (binning) of observations
+    #binwidth = 0.25
+    alpha = 0.2
+  ) +
+  
+  # Themes and Labels
+  scale_fill_tq() +
+  theme_tq() +
+  labs(
+    title = "Complete Hypothesis: PMPs against unconstrained",
+    x = "PMP1u",
+    y = "Sample Size",
+    fill = "Indicator True complete Hypoethesis"
+  ) +
+  
+  facet_wrap(~ n_sample, scales = "free") +
+  theme(
+    axis.ticks.y = element_blank(), 
+    axis.text.y = element_blank())
+
+data %>% 
+  filter(study == 3, n_sample %in% c(25, 500) & c == 0 & d == 0.8) %>%
+  ggplot(aes(y = factor(n_sample), x = BES_PMP1u_part, fill = factor(ind))) +
+  
+  geom_boxplot(
+    width = 0.15,
+    # removing outliers
+    outlier.color = NA,
+    alpha = 0.5
+  ) +
+  
+  stat_dots(
+    # ploting on left side
+    side = "right",
+    # adjusting position
+    justification = 1.2,
+    # adjust grouping (binning) of observations
+    #binwidth = 0.25
+    alpha = 0.2
+  ) +
+  
+  # Themes and Labels
+  scale_fill_tq() +
+  theme_tq() +
+  labs(
+    title = "BES Hypothesis: PMPs against unconstrained",
+    x = "PMP1u",
+    y = "Sample Size",
+    fill = "Indicator True complete Hypoethesis"
+  ) +
+  
+  facet_wrap(~ n_sample, scales = "free") +
+  theme(
+    axis.ticks.y = element_blank(), 
+    axis.text.y = element_blank())
+
+```
+
+only happens in low effect sizes
+
+
+# look at correlated data
+
+## Complement
+```{r}
+#complement
+data %>% 
+  filter(study == 3, n_sample %in% c(75, 1500) & c == 0.8 & d == 0.2) %>%
+  ggplot(aes(y = factor(n_sample), x = PMP1c_comp, fill = factor(ind))) +
+  
+  geom_boxplot(
+    width = 0.12,
+    # removing outliers
+    outlier.color = NA,
+    alpha = 0.5
+  ) +
+  
+  stat_dots(
+    # ploting on left side
+    side = "right",
+    # adjusting position
+    justification = 1.2,
+    # adjust grouping (binning) of observations
+    #binwidth = 0.25
+    alpha = 0.2
+  ) +
+  
+  # Themes and Labels
+  scale_fill_tq() +
+  theme_tq() +
+  labs(
+    title = "Complete Hypothesis: PMPs against complement",
+    x = "PMP1c",
+    y = "Sample Size",
+    fill = "Indicator True complete Hypoethesis"
+  ) +
+  
+  facet_wrap(~ n_sample, scales = "free") +
+  theme(
+    axis.ticks.y = element_blank(), 
+    axis.text.y = element_blank())
+
+data %>% 
+  filter(study == 3, n_sample %in% c(25, 500) & c == 0.8 & d == 0.2) %>%
+  ggplot(aes(y = factor(n_sample), x = BES_PMP1c_part, fill = factor(ind))) +
+  
+  geom_boxplot(
+    width = 0.15,
+    # removing outliers
+    outlier.color = NA,
+    alpha = 0.5
+  ) +
+  
+  stat_dots(
+    # ploting on left side
+    side = "right",
+    # adjusting position
+    justification = 1.2,
+    # adjust grouping (binning) of observations
+    #binwidth = 0.25
+    alpha = 0.2
+  ) +
+  
+  # Themes and Labels
+  scale_fill_tq() +
+  theme_tq() +
+  labs(
+    title = "BES Hypothesis: PMPs against complement",
+    x = "PMP1c",
+    y = "Sample Size",
+    fill = "Indicator True complete Hypoethesis"
+  ) +
+  
+  facet_wrap(~ n_sample, scales = "free") +
+  theme(
+    axis.ticks.y = element_blank(), 
+    axis.text.y = element_blank())
+
+```
+In the BES we can see some red <0.5
+```{r}
+data_BES_part_low <- data %>%
+  filter(study == 3 & c == 0.8 & d == 0.2 & n_sample %in% c(25, 500) & BES_PMP1c_part <= 0.5)
+
+data_BES_part_low %>% filter(ind == 1 & n_sample == 500) # empty -> happens only in low samples
+data_BES_part_low %>% filter(ind == 1 & n_sample == 25)
+```
+
+```{r}
+nsim_low <- data_BES_part_low %>% filter(ind == 1 & n_sample == 25) %>% pull(nsim) # 5 nsims
+
+# export all obs in c 0, d 0.2 nsample 25 and ind 1
+data_low_part_82_25 <- data %>% filter(c == 0.8 & d == 0.2 & n_sample == 25 & nsim %in% nsim_low)
+
+filtered_data <- data_low_part_82_25 %>%
+  group_by(c, d, nsim) %>%
+  filter(all(ind == 1)) %>%
+  ungroup()
+# never all ind == 1
+```
+
+likely that BES < 0.5 only happens in cases where at least 1 partial is not true 
+  -> make ind more specific, also for partial hypotheses, so we can see exactly
+```{r}
+data_low_part_82_25 %>% select(-c(n_sample, d, c, H_comp, H_part))
+```
+
+
+## unconstrained
+```{r}
+# unconstrained
+data %>% 
+  filter(study == 3, n_sample %in% c(75, 1500) & c == 0.8 & d == 0.2) %>%
+  ggplot(aes(y = factor(n_sample), x = PMP1u_comp, fill = factor(ind))) +
+  
+  geom_boxplot(
+    width = 0.12,
+    # removing outliers
+    outlier.color = NA,
+    alpha = 0.5
+  ) +
+  
+  stat_dots(
+    # ploting on left side
+    side = "right",
+    # adjusting position
+    justification = 1.2,
+    # adjust grouping (binning) of observations
+    #binwidth = 0.25
+    alpha = 0.2
+  ) +
+  
+  # Themes and Labels
+  scale_fill_tq() +
+  theme_tq() +
+  labs(
+    title = "Complete Hypothesis: PMPs against unconstrained",
+    x = "PMP1u",
+    y = "Sample Size",
+    fill = "Indicator True complete Hypoethesis"
+  ) +
+  
+  facet_wrap(~ n_sample, scales = "free") +
+  theme(
+    axis.ticks.y = element_blank(), 
+    axis.text.y = element_blank())
+
+data %>% 
+  filter(study == 3, n_sample %in% c(25, 500) & c == 0.8 & d == 0.2) %>%
+  ggplot(aes(y = factor(n_sample), x = BES_PMP1u_part, fill = factor(ind))) +
+  
+  geom_boxplot(
+    width = 0.15,
+    # removing outliers
+    outlier.color = NA,
+    alpha = 0.5
+  ) +
+  
+  stat_dots(
+    # ploting on left side
+    side = "right",
+    # adjusting position
+    justification = 1.2,
+    # adjust grouping (binning) of observations
+    #binwidth = 0.25
+    alpha = 0.2
+  ) +
+  
+  # Themes and Labels
+  scale_fill_tq() +
+  theme_tq() +
+  labs(
+    title = "BES Hypothesis: PMPs against unconstrained",
+    x = "PMP1u",
+    y = "Sample Size",
+    fill = "Indicator True complete Hypoethesis"
+  ) +
+  
+  facet_wrap(~ n_sample, scales = "free") +
+  theme(
+    axis.ticks.y = element_blank(), 
+    axis.text.y = element_blank())
+
+```
+
+In the BES we can see some red <0.5
+```{r}
+data_BES_part_low_u <- data %>%
+  filter(study == 3 & c == 0.8 & d == 0.2 & n_sample %in% c(25, 500) & BES_PMP1u_part <= 0.5)
+
+data_BES_part_low_u %>% filter(ind == 1 & n_sample == 500) # empty -> happens only in low samples
+data_BES_part_low_u %>% filter(ind == 1 & n_sample == 25)
+```
+
+```{r}
+nsim_low_u <- data_BES_part_low_u %>% filter(ind == 1 & n_sample == 25) %>% pull(nsim)
+
+# export all obs in c 0, d 0.2 nsample 25 and ind 1
+data_low_part_02_25_u <- data %>% filter(c == 0.8 & d == 0.2 & n_sample == 25 & nsim %in% nsim_low_u)
+
+filtered_data_u <- data_low_part_02_25_u %>%
+  group_by(c, d, nsim) %>%
+  filter(all(ind == 1)) %>%
+  ungroup()
+# never all ind == 1
+```
+
+
+conclusion:
+```{r}
+length(nsim_low)
+length(nsim_low_u)
+```
+
+again, happens more often in the unconstrained scenario, only happens when at least one ind == 0, happens in the uncorrelated scenario (but only rarely)
+
+
+
+-----------
+happens less often with correlated data -> we can assume that it comes from the randomness?

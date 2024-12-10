@@ -13,7 +13,7 @@ h_s2 <- "mu_m > mu_f"
 h_s3 <- "mu_f > mu_t"
 H <- "mu_s > mu_m > mu_f > mu_t"
 
-nsim <- 25
+nsim <- 2500
 
 
 
@@ -21,9 +21,9 @@ nsim <- 25
 t1 <- Sys.time()
 data <- simulate(nsim = nsim,
                       study = 1:3,
-                      n_sample = c(25, 75, 50, 150, 500, 1500),
+                      n_sample = c(25, 75, 500, 1500),
                       d = c(0, 0.2, 0.8),
-                      c = c(0, 0.2, 0.8)) %>%
+                      c = c(0, 0.8)) %>%
   # add hypotheses
   mutate(H_comp = H,
          H_part = case_when(
@@ -65,5 +65,5 @@ data <- data %>%
 t2 <- Sys.time()
 t2-t1 #2.5h
 
-save(data, file = "data/sim_comp_02_2500.Rdata")
+save(data, file = "data/sim_comp_inv_2500.Rdata")
 
