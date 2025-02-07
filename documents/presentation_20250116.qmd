@@ -1,0 +1,84 @@
+---
+title: "Bayesian Evidence Synthesis"
+subtitle: "Aggregating Evidence from Partially Overlapping Hypotheses"
+date: "01/16/2025"
+date-format: "DD MMM YYYY"
+author:  
+  Supervised by Prof. Dr. Irene Klugkist, Dr. Duco Veen and Alfons Edmar
+toc: false
+format: 
+  revealjs:
+    slide-number: true
+    logo: pres_files/UU_logo_2021_EN_RGB.png
+    footer: "Florian Metwaly"
+    css: pres_files/custom-style.css
+embed-resources: true
+bibliography: bibliography.bib
+nocite: |
+  @kevenaar_bayesian_2021, @kuiper_combining_2012, @klugkist_bayesian_2023
+  
+---
+
+## Why Bayesian Evidence Synthesis?  
+
+- Traditional meta-analyses aggregate evidence across studies with similar setups.  
+- **Challenges**: Requires conceptual replications and consistent study designs.  
+- **Solution**: Bayesian Evidence Synthesis (BES) aggregates evidence at the level of Bayes Factors.  
+$$
+    \label{eq:BES}
+    \left(\frac{P\left(H_1 \mid D\right)}{P\left(H_2 \mid D\right)}\right)^T=\frac{P\left(H_1\right)}{P\left(H_2\right)} \prod_{t=1}^T\left(\mathrm{BF}_{1,2}\right)^t \text {,}
+$$
+
+
+
+::: notes
+Common practice in research is to conduct meta-analyses, which aggregate evidence over
+multiple studies at the level of effect sizes, to draw more reliable and generalizable conclusions
+about a particular phenomenon. By combining the results of several studies, meta-analyses
+increase statistical power and reduce the uncertainty associated with individual studies that
+may have small sample sizes or inconsistent results. But, this is only possible if multiple
+studies are conceptual replications of each other
+Bayesian Evidence Synthesis (BES) is
+an alternative for meta-analyses, which aggregates evidence on the level of the Bayes Factor
+(BF). As has been shown, BES can reliably aggregate the evidence over multiple studies with
+diverse study set-ups, as long as the underlying hypotheses represent the same underlying
+effect.
+
+  - Can handle diverse study setups if hypotheses align on the underlying effect. 
+
+:::
+
+
+## Case Study: Kevenaar et al. (2021)
+
+- Multiple cohort studies were used, but each study tested only **part** of the overarching hypothesis.  
+
+
+**Simplified Example**:  
+The overarching hypothesis:  
+
+$\mu_1 > \mu_2 > \mu_3 > \mu_4$
+
+
+Each study tested only a part:  
+- Study 1: $\mu_1 > \mu_2$  
+- Study 2: $\mu_2 > \mu_3$  
+- Study 3: $\mu_3 > \mu_4$  
+
+
+
+  
+ 
+## Research Question
+
+*Is the synthesis of BFs from studies that evaluate only parts of the overarching hypothesis a good measure of joint support for the overarching hypothesis?*
+
+
+
+---
+
+
+## Sources
+
+::: {.bibliography}
+:::

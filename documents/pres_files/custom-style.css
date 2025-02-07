@@ -1,0 +1,5 @@
+.reveal .slide-logo {
+  height: 75px !important;
+  max-height: unset !important;
+  position: absolute;
+}
