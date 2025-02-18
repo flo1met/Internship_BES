@@ -1,0 +1,388 @@
+---
+title: "Simulation 3&4"
+format: html
+---
+
+Start Timer
+```{r}
+t1 <- Sys.time()
+```
+
+
+```{r}
+library(MASS)
+library(tidyverse)
+library(BFpack)
+source("../scripts/function.R")
+```
+
+# Global Parameters
+```{r}
+# seed
+set.seed(1337)
+
+# number of simulations
+nsim <- 500
+
+# sample and effect sizes
+n_sample <- c(25, 75, 50, 150, 100, 300, 500, 1500)
+d <- c(0, 0.2, 0.5, 0.8)
+c <- c(0, 0.2, 0.5, 0.8)
+```
+
+# Simulation 3&4
+Define Hypotheses
+```{r}
+h_p1 <- "mu_1 > mu_2"
+h_p2 <- "mu_3 > mu_2"
+h_p3 <- "mu_3 > mu_4"
+
+H_correct <- "mu_1 > mu_2 > mu_3 > mu_4"
+H_wrong <- "mu_1 < mu_2 < mu_3 < mu_4"
+H_switch <- "mu_1 > mu_3 > mu_2 > mu_4" # in accordance with the partial hypotheses
+H_null <- "mu_1 = mu_2 = mu_3 = mu_4"
+```
+
+## Simulation 3
+
+### Simulation 3 Study 1
+Simulates one dataset in which we test H_correct, H_wrong, H_switch and H_null against BES with mu_2 and mu_3 switched, calculated from the same dataset.
+```{r}
+Sim_3_Study_1 <- simulate(nsim = nsim,
+                      n_sample = n_sample,
+                      d = d,
+                      c = c) %>%
+    rowwise() %>%
+    mutate(
+      # BF correct Hypothesis
+      BF_H_correct = list(
+        BF(
+          x = s_mu,
+          Sigma = s_Sigma / n_sample,
+          n = n_sample,
+          hypothesis = H_correct
+        )
+      ),
+      BF1u_H_correct = BF_H_correct$BFtu_confirmatory[[1]],
+      PMP1c_H_correct = BF_H_correct$PHP_confirmatory[[1]],
+      PMP1u_H_correct = BF1u_H_correct / (BF1u_H_correct + 1),
+      # BF wrong Hypothesis
+      BF_H_wrong = list(
+        BF(
+          x = s_mu,
+          Sigma = s_Sigma / n_sample,
+          n = n_sample,
+          hypothesis = H_correct
+        )
+      ),
+      BF1u_H_wrong = BF_H_wrong$BFtu_confirmatory[[1]],
+      PMP1c_H_wrong = BF_H_wrong$PHP_confirmatory[[1]],
+      PMP1u_H_wrong = BF1u_H_wrong / (BF1u_H_wrong + 1),
+      # BF switch Hypothesis
+      BF_H_switch = list(
+        BF(
+          x = s_mu,
+          Sigma = s_Sigma / n_sample,
+          n = n_sample,
+          hypothesis = H_correct
+        )
+      ),
+      BF1u_H_switch = BF_H_switch$BFtu_confirmatory[[1]],
+      PMP1c_H_switch = BF_H_switch$PHP_confirmatory[[1]],
+      PMP1u_H_switch = BF1u_H_switch / (BF1u_H_switch + 1),
+      # BF null Hypothesis
+      BF_H_null = list(
+        BF(
+          x = s_mu,
+          Sigma = s_Sigma / n_sample,
+          n = n_sample,
+          hypothesis = H_correct
+        )
+      ),
+      BF1u_H_null = BF_H_null$BFtu_confirmatory[[1]],
+      PMP1c_H_null = BF_H_null$PHP_confirmatory[[1]],
+      PMP1u_H_null = BF1u_H_null / (BF1u_H_null + 1),
+      # BF Partial Study 1
+      BF_h_p1 = list(
+        BF(
+          x = s_mu,
+          Sigma = s_Sigma / n_sample,
+          n = n_sample,
+          hypothesis = h_p1
+        )
+      ),
+      BF1u_h_p1 = BF_h_p1$BFtu_confirmatory[[1]],
+      PMP1c_h_p1 = BF_h_p1$PHP_confirmatory[[1]],
+      PMP1u_h_p1 = BF1u_h_p1 / (BF1u_h_p1 + 1),
+      # BF Partial Study 2
+      BF_h_p2 = list(
+        BF(
+          x = s_mu,
+          Sigma = s_Sigma / n_sample,
+          n = n_sample,
+          hypothesis = h_p2
+        )
+      ),
+      BF1u_h_p2 = BF_h_p2$BFtu_confirmatory[[1]],
+      PMP1c_h_p2 = BF_h_p2$PHP_confirmatory[[1]],
+      PMP1u_h_p2 = BF1u_h_p2 / (BF1u_h_p2 + 1),
+      # BF Partial Study 3
+      BF_h_p3 = list(
+        BF(
+          x = s_mu,
+          Sigma = s_Sigma / n_sample,
+          n = n_sample,
+          hypothesis = h_p3
+        )
+      ),
+      BF1u_h_p3 = BF_h_p3$BFtu_confirmatory[[1]],
+      PMP1c_h_p3 = BF_h_p3$PHP_confirmatory[[1]],
+      PMP1u_h_p3 = BF1u_h_p3 / (BF1u_h_p3 + 1)
+    ) %>%
+    rowwise() %>%
+    mutate(BESc = prod(c(PMP1c_h_p1, PMP1c_h_p2, PMP1c_h_p3)) / (prod(c(
+      PMP1c_h_p1, PMP1c_h_p2, PMP1c_h_p3
+    )) + prod(
+      c(1 - PMP1c_h_p1, 1 - PMP1c_h_p2, 1 - PMP1c_h_p3)
+    )),
+    BESu = prod(c(PMP1u_h_p1, PMP1u_h_p2, PMP1u_h_p3)) / (prod(c(
+      PMP1u_h_p1, PMP1u_h_p2, PMP1u_h_p3
+    )) + prod(
+      c(1 - PMP1u_h_p1, 1 - PMP1u_h_p2, 1 - PMP1u_h_p3)
+    ))) 
+```
+
+indicate if complete and partial hypotheses are true
+```{r}
+Sim_3_Study_1 <- addIndicator(Sim_3_Study_1)
+```
+
+Safe Data
+```{r}
+save(Sim_3_Study_1, file = "../data/Sim_1_Study_1.RData")
+```
+
+Timer
+```{r}
+Sys.time() - t1
+```
+
+Clean Workspace
+```{r}
+rm(Sim_3_Study_1)
+```
+
+## Simulation 4
+
+### Simulation 4 Study 1: Complete Hypothesis
+```{r}
+Sim_4_Study_1 <- simulate(nsim = nsim,
+                      n_sample = n_sample,
+                      d = d,
+                      c = c) %>%
+    rowwise() %>%
+    mutate(
+      # BF correct Hypothesis
+      BF_H_correct = list(
+        BF(
+          x = s_mu,
+          Sigma = s_Sigma / n_sample,
+          n = n_sample,
+          hypothesis = H_correct
+        )
+      ),
+      BF1u_H_correct = BF_H_correct$BFtu_confirmatory[[1]],
+      PMP1c_H_correct = BF_H_correct$PHP_confirmatory[[1]],
+      PMP1u_H_correct = BF1u_H_correct / (BF1u_H_correct + 1),
+      # BF wrong Hypothesis
+      BF_H_wrong = list(
+        BF(
+          x = s_mu,
+          Sigma = s_Sigma / n_sample,
+          n = n_sample,
+          hypothesis = H_correct
+        )
+      ),
+      BF1u_H_wrong = BF_H_wrong$BFtu_confirmatory[[1]],
+      PMP1c_H_wrong = BF_H_wrong$PHP_confirmatory[[1]],
+      PMP1u_H_wrong = BF1u_H_wrong / (BF1u_H_wrong + 1),
+      # BF switch Hypothesis
+      BF_H_switch = list(
+        BF(
+          x = s_mu,
+          Sigma = s_Sigma / n_sample,
+          n = n_sample,
+          hypothesis = H_correct
+        )
+      ),
+      BF1u_H_switch = BF_H_switch$BFtu_confirmatory[[1]],
+      PMP1c_H_switch = BF_H_switch$PHP_confirmatory[[1]],
+      PMP1u_H_switch = BF1u_H_switch / (BF1u_H_switch + 1),
+      # BF null Hypothesis
+      BF_H_null = list(
+        BF(
+          x = s_mu,
+          Sigma = s_Sigma / n_sample,
+          n = n_sample,
+          hypothesis = H_correct
+        )
+      ),
+      BF1u_H_null = BF_H_null$BFtu_confirmatory[[1]],
+      PMP1c_H_null = BF_H_null$PHP_confirmatory[[1]],
+      PMP1u_H_null = BF1u_H_null / (BF1u_H_null + 1)
+      )
+```
+
+indicate if complete and partial hypotheses are true
+```{r}
+Sim_4_Study_1 <- addIndicator(Sim_4_Study_1)
+```
+
+Safe Data
+```{r}
+save(Sim_4_Study_1, file = "../data/Sim_4_Study_1.RData")
+```
+
+Timer
+```{r}
+Sys.time() - t1
+```
+
+Clean Workspace
+```{r}
+rm(Sim_4_Study_1)
+```
+
+### Simulation 4 Study 2: mu_1 > mu_2
+```{r}
+Sim_4_Study_2 <- simulate(nsim = nsim,
+                      n_sample = n_sample,
+                      d = d,
+                      c = c) %>%
+    rowwise() %>%
+    mutate(
+      # BF Partial Study 1
+      BF_h_p1 = list(
+        BF(
+          x = s_mu,
+          Sigma = s_Sigma / n_sample,
+          n = n_sample,
+          hypothesis = h_p1
+        )
+      ),
+      BF1u_h_p1 = BF_h_p1$BFtu_confirmatory[[1]],
+      PMP1c_h_p1 = BF_h_p1$PHP_confirmatory[[1]],
+      PMP1u_h_p1 = BF1u_h_p1 / (BF1u_h_p1 + 1)
+    )
+```
+
+indicate if complete and partial hypotheses are true
+```{r}
+Sim_4_Study_2 <- addIndicator(Sim_4_Study_2)
+```
+
+Safe Data
+```{r}
+save(Sim_4_Study_2, file = "../data/Sim_4_Study_2.RData")
+```
+
+Timer
+```{r}
+Sys.time() - t1
+```
+
+Clean Workspace
+```{r}
+rm(Sim_4_Study_2)
+```
+
+### Simulation 4 Study 3: mu_2 > mu_3
+```{r}
+Sim_4_Study_3 <- simulate(nsim = nsim,
+                      n_sample = n_sample,
+                      d = d,
+                      c = c) %>%
+    rowwise() %>%
+    mutate(
+      # BF Partial Study 2
+      BF_h_p2 = list(
+        BF(
+          x = s_mu,
+          Sigma = s_Sigma / n_sample,
+          n = n_sample,
+          hypothesis = h_p2
+        )
+      ),
+      BF1u_h_p2 = BF_h_p2$BFtu_confirmatory[[1]],
+      PMP1c_h_p2 = BF_h_p2$PHP_confirmatory[[1]],
+      PMP1u_h_p2 = BF1u_h_p2 / (BF1u_h_p2 + 1)
+    )
+```
+
+indicate if complete and partial hypotheses are true
+```{r}
+Sim_4_Study_3 <- addIndicator(Sim_4_Study_3)
+```
+
+Safe Data
+```{r}
+save(Sim_4_Study_3, file = "../data/Sim_4_Study_3.RData")
+```
+
+Timer
+```{r}
+Sys.time() - t1
+```
+
+Clean Workspace
+```{r}
+rm(Sim_4_Study_3)
+```
+
+### Simulation 4 Study 4: mu_3 > mu_4
+```{r}
+Sim_4_Study_4 <- simulate(nsim = nsim,
+                      n_sample = n_sample,
+                      d = d,
+                      c = c) %>%
+    rowwise() %>%
+    mutate(
+      # BF Partial Study 3
+      BF_h_p3 = list(
+        BF(
+          x = s_mu,
+          Sigma = s_Sigma / n_sample,
+          n = n_sample,
+          hypothesis = h_p3
+        )
+      ),
+      BF1u_h_p3 = BF_h_p3$BFtu_confirmatory[[1]],
+      PMP1c_h_p3 = BF_h_p3$PHP_confirmatory[[1]],
+      PMP1u_h_p3 = BF1u_h_p3 / (BF1u_h_p3 + 1)
+    )
+```
+
+indicate if complete and partial hypotheses are true
+```{r}
+Sim_4_Study_4 <- addIndicator(Sim_4_Study_4)
+```
+
+Safe Data
+```{r}
+save(Sim_4_Study_4, file = "../data/Sim_4_Study_4.RData")
+```
+
+Timer
+```{r}
+Sys.time() - t1
+```
+
+Clean Workspace
+```{r}
+rm(Sim_4_Study_4)
+```
+
+End Timer
+```{r}
+Sys.time() - t1
+```

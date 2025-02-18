@@ -1,0 +1,80 @@
+---
+title: "Data Processing"
+format: html
+---
+
+```{r}
+library(tidyverse)
+```
+
+
+# Process Simulation 2
+```{r}
+load("../data/Sim_2_Study_2.RData")
+load("../data/Sim_2_Study_3.RData")
+load("../data/Sim_2_Study_4.RData")
+```
+
+```{r}
+Sim_2_BES <- Sim_2_Study_2 %>%
+  select(nsim, n_sample, d, c, PMP1c_h_p1, PMP1u_h_p1, ind_p1)  %>%
+  left_join(Sim_2_Study_3 %>% select(nsim, n_sample, d, c, PMP1c_h_p2, PMP1u_h_p2, ind_p2), by = c("nsim", "n_sample", "d", "c")) %>%
+  left_join(Sim_2_Study_4 %>% select(nsim, n_sample, d, c, PMP1c_h_p3, PMP1u_h_p3, ind_p3), by = c("nsim", "n_sample", "d", "c")) %>%
+  mutate(BESc = prod(PMP1c_h_p1, PMP1c_h_p2, PMP1c_h_p3) / (prod(PMP1c_h_p1, PMP1c_h_p2, PMP1c_h_p3) + prod(1-PMP1c_h_p1, 1-PMP1c_h_p2, 1-PMP1c_h_p3)),
+         BESu = prod(PMP1u_h_p1, PMP1u_h_p2, PMP1u_h_p3) / (prod(PMP1u_h_p1, PMP1u_h_p2, PMP1c_h_p3) + prod(1-PMP1u_h_p1, 1-PMP1u_h_p2, 1-PMP1u_h_p3))
+         )
+
+```
+
+```{r}
+save(Sim_2_BES, file = "../data/Sim_2_BES")
+```
+
+
+# Process Simulation 4
+```{r}
+load("../data/Sim_4_Study_2.RData")
+load("../data/Sim_4_Study_3.RData")
+load("../data/Sim_4_Study_4.RData")
+```
+
+```{r}
+Sim_4_BES <- Sim_4_Study_2 %>%
+  select(nsim, n_sample, d, c, PMP1c_h_p1, PMP1u_h_p1, ind_p1)  %>%
+  left_join(
+    Sim_4_Study_3 %>% select(nsim, n_sample, d, c, PMP1c_h_p2, PMP1u_h_p2, ind_p2),
+    by = c("nsim", "n_sample", "d", "c")
+  ) %>%
+  left_join(
+    Sim_4_Study_4 %>% select(nsim, n_sample, d, c, PMP1c_h_p3, PMP1u_h_p3, ind_p3),
+    by = c("nsim", "n_sample", "d", "c")
+  ) %>%
+  mutate(
+    BESc = prod(PMP1c_h_p1, PMP1c_h_p2, PMP1c_h_p3) / (
+      prod(PMP1c_h_p1, PMP1c_h_p2, PMP1c_h_p3) + prod(1 - PMP1c_h_p1, 1 - PMP1c_h_p2, 1 -
+                                                        PMP1c_h_p3)
+    ),
+    BESu = prod(PMP1u_h_p1, PMP1u_h_p2, PMP1u_h_p3) / (
+      prod(PMP1u_h_p1, PMP1u_h_p2, PMP1c_h_p3) + prod(1 - PMP1u_h_p1, 1 - PMP1u_h_p2, 1 -
+                                                        PMP1u_h_p3)
+    )
+         )
+
+```
+
+```{r}
+save(Sim_4_BES, file = "../data/Sim_4_BES")
+```
+
+
+# Process Simulation 1
+```{r}
+load("../data/Sim_1_Study_1.RData")
+```
+
+```{r}
+Sim_1_Error <- Sim_1_Study_1 %>%
+  select(nsim, n_sample, d, c, PMP1c_h_p1, PMP1c_h_p2, PMP1c_h_p3, PMP1u_h_p1, PMP1u_h_p2, PMP1u_h_p3, BESc, BESu, ind_comp, ind_p1, ind_p2, ind_p3)
+```
+
+
