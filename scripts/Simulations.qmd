@@ -168,7 +168,7 @@ Sim_1 <- Sim_1 %>%
                                                         PMP1c_h_p3)
     ),
     BESu = prod(PMP1u_h_p1, PMP1u_h_p2, PMP1u_h_p3) / (
-      prod(PMP1u_h_p1, PMP1u_h_p2, PMP1c_h_p3) + prod(1 - PMP1u_h_p1, 1 - PMP1u_h_p2, 1 -
+      prod(PMP1u_h_p1, PMP1u_h_p2, PMP1u_h_p3) + prod(1 - PMP1u_h_p1, 1 - PMP1u_h_p2, 1 -
                                                         PMP1u_h_p3)
     )
   )
@@ -326,7 +326,7 @@ Sim_2 <- Sim_2_Study_2 %>%
                                                         PMP1c_h_p3)
     ),
     BESu = prod(PMP1u_h_p1, PMP1u_h_p2, PMP1u_h_p3) / (
-      prod(PMP1u_h_p1, PMP1u_h_p2, PMP1c_h_p3) + prod(1 - PMP1u_h_p1, 1 - PMP1u_h_p2, 1 -
+      prod(PMP1u_h_p1, PMP1u_h_p2, PMP1u_h_p3) + prod(1 - PMP1u_h_p1, 1 - PMP1u_h_p2, 1 -
                                                         PMP1u_h_p3)
     )
   )
@@ -485,7 +485,7 @@ Sim_3 <- Sim_3 %>%
                                                         PMP1c_h_p3)
     ),
     BESu = prod(PMP1u_h_p1, PMP1u_h_p2, PMP1u_h_p3) / (
-      prod(PMP1u_h_p1, PMP1u_h_p2, PMP1c_h_p3) + prod(1 - PMP1u_h_p1, 1 - PMP1u_h_p2, 1 -
+      prod(PMP1u_h_p1, PMP1u_h_p2, PMP1u_h_p3) + prod(1 - PMP1u_h_p1, 1 - PMP1u_h_p2, 1 -
                                                         PMP1u_h_p3)
     )
   )
@@ -643,7 +643,7 @@ Sim_4 <- Sim_4_Study_2 %>%
                                                         PMP1c_h_p3)
     ),
     BESu = prod(PMP1u_h_p1, PMP1u_h_p2, PMP1u_h_p3) / (
-      prod(PMP1u_h_p1, PMP1u_h_p2, PMP1c_h_p3) + prod(1 - PMP1u_h_p1, 1 - PMP1u_h_p2, 1 -
+      prod(PMP1u_h_p1, PMP1u_h_p2, PMP1u_h_p3) + prod(1 - PMP1u_h_p1, 1 - PMP1u_h_p2, 1 -
                                                         PMP1u_h_p3)
     )
   )

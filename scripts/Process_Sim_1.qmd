@@ -1,0 +1,302 @@
+---
+title: "Plots Error"
+format: html
+---
+```{r}
+library(tidyverse)
+library(ggdist)
+library(ggthemes)
+library(tidyquant)
+```
+
+
+```{r}
+load("../data/Sim_1.RData")
+
+####### FIX CODING MISTAKE, ONLY THIS RUN, CORRECTED IN SIM######
+Sim_1 <- Sim_1 %>% 
+  mutate(
+    BESu = prod(PMP1u_h_p1, PMP1u_h_p2, PMP1u_h_p3) / (
+      prod(PMP1u_h_p1, PMP1u_h_p2, PMP1u_h_p3) + prod(1 - PMP1u_h_p1, 1 - PMP1u_h_p2, 1 -
+                                                        PMP1u_h_p3)
+  ))
+```
+
+```{r}
+Sim_1$n_sample <- Sim_1$n_sample*3
+
+# Add indicator or partial
+Sim_1$ind_p_all <- ifelse(Sim_1$ind_p1 == 1 & Sim_1$ind_p2 == 1 & Sim_1$ind_p1 == 1, 1, 0)
+```
+
+
+```{r}
+Sim_1 <- Sim_1 %>%
+  group_by(n_sample, d, c) %>%
+  mutate(
+    MAPDu = abs((PMP1u_H - BESu) / PMP1u_H) * 100, # mean average percentage difference
+    MSDu = PMP1u_H - BESu, # mean signed difference
+    MAPDc = abs((PMP1c_H - BESc) / PMP1c_H) * 100, # mean average percentage difference
+    MSDc = PMP1c_H - BESc # mean signed difference
+  )
+```
+
+Aggregated dataset
+```{r}
+Sim_1_agg <- Sim_1 %>%
+  group_by(n_sample, c, d) %>%
+  summarise(PMP1u_H = mean(PMP1u_H),
+            PMP1c_H = mean(PMP1c_H),
+            BESc = mean(BESc),
+            BESu = mean(BESu),
+            MAPDu = mean(MAPDu),
+            MAPDc = mean(MAPDc),
+            MSDu = mean(MSDu),
+            MSDc = mean(MSDc))
+```
+
+# Plot
+
+## Lineplot MAPD: Bayes Factor tested against the unconstrained Hypothesis
+```{r}
+Sim_1_agg %>% filter(d != 0) %>% ggplot() +
+  geom_line(aes(
+    x = as.factor(n_sample),
+    y = MAPDu,
+    color = as.factor(d),
+    group = 1
+  )) +
+  labs(x = "Sample Size (Total)", y = "MAPD") +
+  ggtitle("MAPD: Tested against unconstrained Hypothesis") +
+  scale_color_discrete(guide = "none") +
+  theme_bw() +
+  facet_grid(c ~ d) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+Mean Average Percentage Difference for effect size d from 0.2 to 0.8 and correlation of 0.0 to 0.8. Bayesfactor tested against the unconstrained hypothesis.
+
+## Lineplot MSD: Bayes Factor tested against the complement Hypothesis
+```{r}
+Sim_1_agg %>% filter(d != 0) %>% ggplot() +
+  geom_line(aes(
+    x = as.factor(n_sample),
+    y = MAPDc,
+    color = as.factor(d),
+    group = 1
+  )) +
+  labs(x = "Sample Size (Total)", y = "MAPD") +
+  ggtitle("MAPD: Tested against complement Hypothesis") +
+  scale_color_discrete(guide = "none") +
+  theme_bw() +
+  facet_grid(c ~ d) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Lineplot MSD: Bayes Factor tested against the unconstrained Hypothesis
+```{r}
+Sim_1_agg %>% filter(d != 0) %>% ggplot() +
+  geom_line(aes(
+    x = as.factor(n_sample),
+    y = MSDu,
+    color = as.factor(d),
+    group = 1
+  )) +
+  labs(x = "Sample Size (Total)", y = "MSD") +
+  ggtitle("MSD: Tested against unconstrained Hypothesis") +
+  scale_color_discrete(guide = "none") +
+  theme_bw() +
+  facet_grid(c ~ d) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Lineplot MSD: Bayes Factor tested against the complement Hypothesis
+```{r}
+Sim_1_agg %>% filter(d != 0) %>% ggplot() +
+  geom_line(aes(
+    x = as.factor(n_sample),
+    y = MSDc,
+    color = as.factor(d),
+    group = 1
+  )) +
+  labs(x = "Sample Size (Total)", y = "MSD") +
+  ggtitle("MSD: Tested against complement Hypothesis") +
+  scale_color_discrete(guide = "none") +
+  theme_bw() +
+  facet_grid(c ~ d) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Complement
+```{r}
+Sim_1 %>% 
+  filter(n_sample %in% c(75, 150, 300, 1500) & c == 0.2 & d == 0.2) %>%
+  ggplot(aes(y = factor(n_sample), x = BESc, fill = factor(ind_comp))) +
+  
+  geom_boxplot(
+    width = 0.12,
+    # removing outliers
+    outlier.color = NA,
+    alpha = 0.5
+  ) +
+  
+  stat_dots(
+    # ploting on left side
+    side = "right",
+    # adjusting position
+    justification = 1.2,
+    # adjust grouping (binning) of observations
+    #binwidth = 0.25
+    alpha = 0.2
+  ) +
+  
+  # Themes and Labels
+  scale_fill_tq() +
+  theme_tq() +
+  labs(
+    title = "Complete Hypothesis: PMPs against complement",
+    x = "PMP1c",
+    y = "Sample Size",
+    fill = "Sample Size"
+  ) +
+  
+  facet_wrap(~ n_sample, scales = "free") +
+  theme(
+    axis.ticks.y = element_blank(), 
+    axis.text.y = element_blank())
+```
+```{r}
+Sim_1 %>% 
+  filter(n_sample %in% c(75, 150, 300, 1500) & c == 0.2 & d == 0.2) %>%
+  ggplot(aes(y = factor(n_sample), x = PMP1c_H, fill = factor(ind_p_all))) +
+  
+  geom_boxplot(
+    width = 0.12,
+    # removing outliers
+    outlier.color = NA,
+    alpha = 0.5
+  ) +
+  
+  stat_dots(
+    # ploting on left side
+    side = "right",
+    # adjusting position
+    justification = 1.2,
+    # adjust grouping (binning) of observations
+    #binwidth = 0.25
+    alpha = 0.2
+  ) +
+  
+  # Themes and Labels
+  scale_fill_tq() +
+  theme_tq() +
+  labs(
+    title = "Complete Hypothesis: PMPs against complement",
+    x = "PMP1c",
+    y = "Sample Size",
+    fill = "Sample Size"
+  ) +
+  
+  facet_wrap(~ n_sample, scales = "free") +
+  theme(
+    axis.ticks.y = element_blank(), 
+    axis.text.y = element_blank())
+```
+
+
+
+# Unconstrained
+```{r}
+Sim_1 %>% 
+  filter(n_sample %in% c(75, 150, 300, 1500) & c == 0.2 & d == 0.2) %>%
+  ggplot(aes(y = factor(n_sample), x = BESu, fill = factor(ind_comp))) +
+  
+  geom_boxplot(
+    width = 0.12,
+    # removing outliers
+    outlier.color = NA,
+    alpha = 0.5
+  ) +
+  
+  stat_dots(
+    # ploting on left side
+    side = "right",
+    # adjusting position
+    justification = 1.2,
+    # adjust grouping (binning) of observations
+    #binwidth = 0.25
+    alpha = 0.2
+  ) +
+  
+  # Themes and Labels
+  scale_fill_tq() +
+  theme_tq() +
+  labs(
+    title = "Complete Hypothesis: PMPs against complement",
+    x = "PMP1c",
+    y = "Sample Size",
+    fill = "Sample Size"
+  ) +
+  
+  facet_wrap(~ n_sample, scales = "free") +
+  theme(
+    axis.ticks.y = element_blank(), 
+    axis.text.y = element_blank())
+```
+
+```{r}
+Sim_1 %>% 
+  filter(n_sample %in% c(75, 150, 300, 1500) & c == 0.2 & d == 0.2) %>%
+  ggplot(aes(y = factor(n_sample), x = PMP1u_H, fill = factor(ind_p_all))) +
+  
+  geom_boxplot(
+    width = 0.12,
+    # removing outliers
+    outlier.color = NA,
+    alpha = 0.5
+  ) +
+  
+  stat_dots(
+    # ploting on left side
+    side = "right",
+    # adjusting position
+    justification = 1.2,
+    # adjust grouping (binning) of observations
+    #binwidth = 0.25
+    alpha = 0.2
+  ) +
+  
+  # Themes and Labels
+  scale_fill_tq() +
+  theme_tq() +
+  labs(
+    title = "Complete Hypothesis: PMPs against complement",
+    x = "PMP1c",
+    y = "Sample Size",
+    fill = "Sample Size"
+  ) +
+  
+  facet_wrap(~ n_sample, scales = "free") +
+  theme(
+    axis.ticks.y = element_blank(), 
+    axis.text.y = element_blank())
+```
+
