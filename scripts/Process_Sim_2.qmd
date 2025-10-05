@@ -13,20 +13,15 @@ library(tidyquant)
 ```{r}
 load("../data/Sim_2.RData")
 
-####### FIX CODING MISTAKE, ONLY THIS RUN, CORRECTED IN SIM######
-Sim_2 <- Sim_2 %>% 
-  mutate(
-    BESu = prod(PMP1u_h_p1, PMP1u_h_p2, PMP1u_h_p3) / (
-      prod(PMP1u_h_p1, PMP1u_h_p2, PMP1u_h_p3) + prod(1 - PMP1u_h_p1, 1 - PMP1u_h_p2, 1 -
-                                                        PMP1u_h_p3)
-  ))
+anyNA(Sim_2)
+df_with_na <- Sim_2[apply(is.na(Sim_2), 1, any), ]
 ```
 
 ```{r}
 Sim_2$n_sample <- Sim_2$n_sample*3
 
 # Add indicator or partial
-Sim_2$ind_p_all <- ifelse(Sim_2$ind_p1 == 1 & Sim_2$ind_p2 == 1 & Sim_2$ind_p1 == 1, 1, 0)
+Sim_2$ind_p_all <- ifelse(Sim_2$ind_p1 == 1 & Sim_2$ind_p2 == 1 & Sim_2$ind_p3 == 1, 1, 0)
 ```
 
 Aggregated dataset

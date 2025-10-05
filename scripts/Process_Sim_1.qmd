@@ -13,20 +13,29 @@ library(tidyquant)
 ```{r}
 load("../data/Sim_1.RData")
 
-####### FIX CODING MISTAKE, ONLY THIS RUN, CORRECTED IN SIM######
-Sim_1 <- Sim_1 %>% 
-  mutate(
-    BESu = prod(PMP1u_h_p1, PMP1u_h_p2, PMP1u_h_p3) / (
-      prod(PMP1u_h_p1, PMP1u_h_p2, PMP1u_h_p3) + prod(1 - PMP1u_h_p1, 1 - PMP1u_h_p2, 1 -
-                                                        PMP1u_h_p3)
-  ))
+anyNA(Sim_1)
+df_with_na <- Sim_1[apply(is.na(Sim_1), 1, any), ]
+# only NA in BESc, bc of 0 in one of the PMPs
+
+# "impute" all NaN with 1 because:
+cumprod(c(0.6,0,1)) / (cumprod(c(0.6,0,1)) + cumprod(c(1-0.6,1-0,1-1)))
+
+cumprod(c(0.6,0.0000001,1)) / (cumprod(c(0.6,0.0000001,1)) + cumprod(c(1-0.6,1-0.0000001,1-1)))
+
+# correct?
+Sim_1$BESc <- ifelse(is.nan(Sim_1$BESc), 1, Sim_1$BESc)
 ```
+
+```{r}
+
+```
+
 
 ```{r}
 Sim_1$n_sample <- Sim_1$n_sample*3
 
 # Add indicator or partial
-Sim_1$ind_p_all <- ifelse(Sim_1$ind_p1 == 1 & Sim_1$ind_p2 == 1 & Sim_1$ind_p1 == 1, 1, 0)
+Sim_1$ind_p_all <- ifelse(Sim_1$ind_p1 == 1 & Sim_1$ind_p2 == 1 & Sim_1$ind_p3 == 1, 1, 0)
 ```
 
 
@@ -39,6 +48,11 @@ Sim_1 <- Sim_1 %>%
     MAPDc = abs((PMP1c_H - BESc) / PMP1c_H) * 100, # mean average percentage difference
     MSDc = PMP1c_H - BESc # mean signed difference
   )
+
+# Set NaNs in MAPDc to 0 bc they only accured if abs((PMP1c_H - BESc) / PMP1c_H) = abs((0 - 0) / 0)
+Sim_1$MAPDc <- ifelse(is.nan(Sim_1$MAPDc), 0, Sim_1$MAPDc)
+
+# Important note: all d = 0 end in Inf for MAPDc (as expected)
 ```
 
 Aggregated dataset
@@ -75,7 +89,7 @@ Sim_1_agg %>% filter(d != 0) %>% ggplot() +
 ```
 Mean Average Percentage Difference for effect size d from 0.2 to 0.8 and correlation of 0.0 to 0.8. Bayesfactor tested against the unconstrained hypothesis.
 
-## Lineplot MSD: Bayes Factor tested against the complement Hypothesis
+## Lineplot MAPD: Bayes Factor tested against the complement Hypothesis
 ```{r}
 Sim_1_agg %>% filter(d != 0) %>% ggplot() +
   geom_line(aes(
@@ -174,8 +188,8 @@ Sim_1 %>%
   labs(
     title = "Complete Hypothesis: PMPs against complement",
     x = "PMP1c",
-    y = "Sample Size",
-    fill = "Sample Size"
+    y = "",
+    fill = "Indicator"
   ) +
   
   facet_wrap(~ n_sample, scales = "free") +
@@ -211,8 +225,8 @@ Sim_1 %>%
   labs(
     title = "Complete Hypothesis: PMPs against complement",
     x = "PMP1c",
-    y = "Sample Size",
-    fill = "Sample Size"
+    y = "",
+    fill = "Indicator"
   ) +
   
   facet_wrap(~ n_sample, scales = "free") +
@@ -252,8 +266,8 @@ Sim_1 %>%
   labs(
     title = "Complete Hypothesis: PMPs against complement",
     x = "PMP1c",
-    y = "Sample Size",
-    fill = "Sample Size"
+    y = "",
+    fill = "Indicator"
   ) +
   
   facet_wrap(~ n_sample, scales = "free") +
@@ -290,8 +304,8 @@ Sim_1 %>%
   labs(
     title = "Complete Hypothesis: PMPs against complement",
     x = "PMP1c",
-    y = "Sample Size",
-    fill = "Sample Size"
+    y = "",
+    fill = "Indicator"
   ) +
   
   facet_wrap(~ n_sample, scales = "free") +

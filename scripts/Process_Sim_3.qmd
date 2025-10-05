@@ -13,13 +13,8 @@ library(tidyquant)
 ```{r}
 load("../data/Sim_3.RData")
 
-####### FIX CODING MISTAKE, ONLY THIS RUN, CORRECTED IN SIM######
-Sim_3 <- Sim_3 %>% 
-  mutate(
-    BESu = prod(PMP1u_h_p1, PMP1u_h_p2, PMP1u_h_p3) / (
-      prod(PMP1u_h_p1, PMP1u_h_p2, PMP1u_h_p3) + prod(1 - PMP1u_h_p1, 1 - PMP1u_h_p2, 1 -
-                                                        PMP1u_h_p3)
-  ))
+anyNA(Sim_3)
+df_with_na <- Sim_3[apply(is.na(Sim_3), 1, any), ]
 ```
 
 ```{r}
@@ -32,7 +27,15 @@ cumprod(c(1,0.0000001,1)) / (cumprod(c(1,0.0000001,1)) + cumprod(c(1-1,1-0.00000
 Sim_3$BESc <- ifelse(is.nan(Sim_3$BESc), 1, Sim_3$BESc)
 ```
 
+```{r}
+df_with_inf <- Sim_3 %>%
+  filter(if_any(where(is.numeric), ~ !is.finite(.)))
+```
 
+```{r}
+df_with_nan <- Sim_3 %>%
+  filter(if_any(where(is.numeric), ~ is.nan(.)))
+```
 
 missingness: when testing against the Hu and get inf evd 
 
@@ -42,7 +45,7 @@ IF missing -> PMP 0.5 because informative and complement are both infinitely bad
 Sim_3$n_sample <- Sim_3$n_sample*3
 
 # Add indicator or partial
-Sim_3$ind_p_all <- ifelse(Sim_3$ind_p1 == 1 & Sim_3$ind_p2 == 1 & Sim_3$ind_p1 == 1, 1, 0)
+Sim_3$ind_p_all <- ifelse(Sim_3$ind_p1 == 1 & Sim_3$ind_p2 == 1 & Sim_3$ind_p3 == 1, 1, 0)
 ```
 
 
