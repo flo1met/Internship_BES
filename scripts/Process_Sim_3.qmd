@@ -74,11 +74,38 @@ Sim_3_agg <- Sim_3 %>%
             MSDc = mean(MSDc))
 ```
 
+```{r}
+Sim_3$MAPDu[is.na.data.frame(Sim_3$MAPDu)] <- 0
+max_mapdu <- max(Sim_3$MAPDu[is.finite(Sim_3$MAPDu)])
+Sim_3$MAPDu[is.infinite(Sim_3$MAPDu)] <- max_mapdu
+
+Sim_3$MAPDc[is.na.data.frame(Sim_3$MAPDc)] <- 0
+max_mapdc <- max(Sim_3$MAPDc[is.finite(Sim_3$MAPDc)])
+Sim_3$MAPDc[is.infinite(Sim_3$MAPDc)] <- max_mapdc
+
+Sim_3_agg_2 <- Sim_3 %>%
+  group_by(n_sample, c, d) %>%
+  summarise(PMP1u_H = mean(PMP1u_H),
+            PMP1c_H = mean(PMP1c_H),
+            BESc = mean(BESc),
+            BESu = mean(BESu),
+            MAPDu = mean(MAPDu),
+            MAPDc = mean(MAPDc),
+            MSDu = mean(MSDu),
+            MSDc = mean(MSDc))
+
+
+```
+```{r}
+#check the outlier
+test <- Sim_3 %>% filter(n_sample == 1500 & c == 0.8 & d == 0.8)
+```
+
 # Plot
 
 ## Lineplot MAPD: Bayes Factor tested against the unconstrained Hypothesis
 ```{r}
-Sim_3_agg %>% filter(d != 0) %>% ggplot() +
+Sim_3_agg_2 %>% filter(d != 0) %>% ggplot() +
   geom_line(aes(
     x = as.factor(n_sample),
     y = MAPDu,
@@ -94,9 +121,9 @@ Sim_3_agg %>% filter(d != 0) %>% ggplot() +
 ```
 Mean Average Percentage Difference for effect size d from 0.2 to 0.8 and correlation of 0.0 to 0.8. Bayesfactor tested against the unconstrained hypothesis.
 
-## Lineplot MSD: Bayes Factor tested against the complement Hypothesis
+## Lineplot MAPD: Bayes Factor tested against the complement Hypothesis
 ```{r}
-Sim_3_agg %>% filter(d != 0) %>% ggplot() +
+Sim_3_agg_2 %>% filter(d != 0) %>% ggplot() +
   geom_line(aes(
     x = as.factor(n_sample),
     y = MAPDc,
