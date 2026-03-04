@@ -1,7 +1,11 @@
 # create and save plots
 library(tidyverse)
-library(tidyquant)
 library(ggdist)
+
+# Consistent Bayesian colour palette (colorblind-friendly)
+col_primary   <- "#8B1A1A"   # dark red / maroon
+col_secondary <- "#2166AC"   # steel blue
+col_box_fill  <- "#EACBCB"   # light rose
 
 # Create plots directory if it doesn't exist
 if (!dir.exists("plots/Sim4/")) {
@@ -48,17 +52,23 @@ lineplot_unconstrained <- Sim_4_agg %>% ggplot() +
     color = "BES",
     group = 1
   )) +
-  scale_linetype_manual(name = "Hypothesis",
+  scale_linetype_manual(name = "Method",
                         values = c("Complete" = "solid", "BES" = "longdash")) +
-  scale_color_manual(name = "Hypothesis",
-                     values = c("Complete" = "#00BFC4", "BES" = "#F8766D")) +
-  ggtitle("Comparison PMPs of BES and complete Hypothesis against the Unconstrained") +
-  labs(x = "Sample Size", y = "Posterior Model Probabilities") +
-  geom_hline(yintercept = 8/(8+1), color = "black", linetype = "dotted", alpha = 0.5) +
-  geom_hline(yintercept = 24/(24+1), color = "grey", linetype = "dotted", alpha = 0.5) +
-  theme_bw() +
+  scale_color_manual(name = "Method",
+                     values = c("Complete" = col_primary, "BES" = col_secondary)) +
+  geom_hline(yintercept = 8/(8+1), color = "grey40", linetype = "dotted", alpha = 0.5) +
+  geom_hline(yintercept = 24/(24+1), color = "grey70", linetype = "dotted", alpha = 0.5) +
+  labs(
+    x = "Sample Size",
+    y = "Posterior Model Probabilities"
+  ) +
+  theme_minimal(base_size = 11) +
   facet_grid(c ~ d) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "bottom",
+    strip.text = element_text(face = "bold")
+  )
 
 ggsave(paste0("plots/Sim4/s4_lineplot_unconstrained",".pdf"), lineplot_unconstrained, 
        width = 21, height = 29.7, units = "cm", dpi = 300)
@@ -82,15 +92,21 @@ lineplot_complement <- Sim_4_agg %>% ggplot() +
     color = "BES",
     group = 1
   )) +
-  scale_linetype_manual(name = "Hypothesis",
+  scale_linetype_manual(name = "Method",
                         values = c("Complete" = "solid", "BES" = "longdash")) +
-  scale_color_manual(name = "Hypothesis",
-                     values = c("Complete" = "#00BFC4", "BES" = "#F8766D")) +
-  labs(x = "Sample Size", y = "Posterior Model Probabilities") +
-  ggtitle("Comparison PMPs of BES and complete Hypothesis against the Complement") +
-  theme_bw() +
+  scale_color_manual(name = "Method",
+                     values = c("Complete" = col_primary, "BES" = col_secondary)) +
+  labs(
+    x = "Sample Size",
+    y = "Posterior Model Probabilities"
+  ) +
+  theme_minimal(base_size = 11) +
   facet_grid(c ~ d) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "bottom",
+    strip.text = element_text(face = "bold")
+  )
 
 ggsave(paste0("plots/Sim4/s4_lineplot_complement",".pdf"), lineplot_complement, 
        width = 21, height = 29.7, units = "cm", dpi = 300)
@@ -155,16 +171,12 @@ for (n in sample_sizes) {
       for (config in plot_configs) {
         
         p <- filtered_data %>%
-          ggplot(aes(x = .data[[config$var]], 
-                     #fill = factor(.data[[config$fill_var]]), 
-                     #color = factor(.data[[config$fill_var]])
-                     )
-                 ) +
+          ggplot(aes(x = .data[[config$var]])) +
           
           stat_dots(
             aes(y = 0),
-            fill = "#7F1D1D",
-            color = "#7F1D1D",
+            fill = col_primary,
+            color = col_primary,
             side = "top",
             scale = 0.8,
             alpha = 0.6,
@@ -173,24 +185,21 @@ for (n in sample_sizes) {
           
           geom_boxplot(
             aes(y = -0.15),
-            fill = "#E6B8B8",
-            color = "#7F1D1D",
+            fill = col_box_fill,
+            color = col_primary,
             width = 0.05,
             outlier.shape = 16,
             outlier.size = 1,
+            outlier.alpha = 0.1,
             alpha = 0.7
           ) +
           
-          scale_fill_tq() +
-          scale_color_tq() +
-          theme_tq() +
+          theme_minimal(base_size = 11) +
           labs(
-            title = paste0(config$title, 
+            title = paste0(config$title,
                            "\nn = ", n, ", c = ", corr, ", d = ", eff),
             x = config$x_label,
-            y = ""#,
-            #fill = "Hypothesis Indicator",
-            #color = "Hypothesis Indicator"
+            y = ""
           ) +
           theme(
             strip.text = element_text(size = 11, face = "bold"),
@@ -214,5 +223,3 @@ for (n in sample_sizes) {
     }
   }
 }
-
-cat("\nAll plots saved successfully!\n")

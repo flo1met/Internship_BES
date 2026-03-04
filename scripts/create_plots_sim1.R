@@ -1,7 +1,11 @@
 # create and save plots
 library(tidyverse)
-library(tidyquant)
 library(ggdist)
+
+# Consistent Bayesian colour palette (colorblind-friendly)
+col_primary   <- "#8B1A1A"   # dark red / maroon
+col_secondary <- "#2166AC"   # steel blue
+col_box_fill  <- "#EACBCB"   # light rose
 
 # Create plots directory if it doesn't exist
 if (!dir.exists("plots/Sim1/")) {
@@ -121,8 +125,8 @@ lineplot_MD_combined <- Sim_1_agg %>%
   mutate(
     hypothesis = recode(
       hypothesis,
-      MAPDu = "Unconstrained",
-      MAPDc = "Complement"
+      MDu = "vs. Unconstrained",
+      MDc = "vs. Complement"
     )
   ) %>%
   ggplot(aes(
@@ -133,17 +137,24 @@ lineplot_MD_combined <- Sim_1_agg %>%
     group = hypothesis
   )) +
   geom_line(linewidth = 0.6) +
+  scale_color_manual(
+    name = "Comparison",
+    values = c("vs. Unconstrained" = col_primary, "vs. Complement" = col_secondary)
+  ) +
+  scale_linetype_manual(
+    name = "Comparison",
+    values = c("vs. Unconstrained" = "solid", "vs. Complement" = "longdash")
+  ) +
   facet_grid(c ~ d) +
   labs(
     x = "Sample Size (Total)",
-    y = "MD",
-    linetype = "Tested hypothesis",
-    title = "MD across sample size",
-    subtitle = "Unconstrained vs Complement hypothesis"
+    y = "MD"
   ) +
-  theme_bw() +
+  theme_minimal(base_size = 11) +
   theme(
-    axis.text.x = element_text(angle = 45, hjust = 1)
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "bottom",
+    strip.text = element_text(face = "bold")
   )
 
 ggsave(paste0("plots/Sim1/s1_lineplot_MD_combined",".pdf"), lineplot_MD_combined, 
@@ -194,15 +205,12 @@ for (n in sample_sizes) {
       for (config in plot_configs) {
         
         p <- filtered_data %>%
-          ggplot(aes(x = .data[[config$var]], 
-                     #fill = factor(.data[[config$fill_var]]), 
-                     #color = factor(.data[[config$fill_var]])
-                     )
-                 
-                 ) +
+          ggplot(aes(x = .data[[config$var]])) +
           
           stat_dots(
             aes(y = 0),
+            fill = col_primary,
+            color = col_primary,
             side = "top",
             scale = 0.8,
             alpha = 0.6,
@@ -211,22 +219,21 @@ for (n in sample_sizes) {
           
           geom_boxplot(
             aes(y = -0.15),
+            fill = col_box_fill,
+            color = col_primary,
             width = 0.05,
             outlier.shape = 16,
             outlier.size = 1,
+            outlier.alpha = 0.1,
             alpha = 0.7
           ) +
           
-          scale_fill_tq() +
-          scale_color_tq() +
-          theme_tq() +
+          theme_minimal(base_size = 11) +
           labs(
-            title = paste0(config$title, 
+            title = paste0(config$title,
                            "\nn = ", n, ", c = ", corr, ", d = ", eff),
             x = config$x_label,
-            y = "",
-            #fill = "Hypothesis Indicator",
-            #color = "Hypothesis Indicator"
+            y = ""
           ) +
           theme(
             strip.text = element_text(size = 11, face = "bold"),
