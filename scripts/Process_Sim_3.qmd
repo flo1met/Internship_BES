@@ -96,6 +96,7 @@ Sim_3_agg_2 <- Sim_3 %>%
 
 
 ```
+
 ```{r}
 #check the outlier
 test <- Sim_3 %>% filter(n_sample == 1500 & c == 0.8 & d == 0.8)

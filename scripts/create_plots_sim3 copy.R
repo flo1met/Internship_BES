@@ -4,101 +4,101 @@ library(tidyquant)
 library(ggdist)
 
 # Create plots directory if it doesn't exist
-if (!dir.exists("plots/Sim4/")) {
-  dir.create("plots/Sim4/", recursive = TRUE)
+if (!dir.exists("plots/Sim3/")) {
+  dir.create("plots/Sim3/", recursive = TRUE)
 }
 
-load("data/Sim_4.RData")
-df_with_na <- Sim_4[apply(is.na(Sim_4), 1, any), ]
+load("data/Sim_3.RData")
+
+anyNA(Sim_3)
+df_with_na <- Sim_3[apply(is.na(Sim_3), 1, any), ]
+
 # "impute" all NaN with 1 because:
 cumprod(c(1,0,1)) / (cumprod(c(1,0,1)) + cumprod(c(1-1,1-0,1-1)))
 
 cumprod(c(1,0.0000001,1)) / (cumprod(c(1,0.0000001,1)) + cumprod(c(1-1,1-0.0000001,1-1)))
 
 # correct?
-Sim_4$BESc <- ifelse(is.nan(Sim_4$BESc), 1, Sim_4$BESc)
-Sim_4$n_sample <- Sim_4$n_sample*3
+Sim_3$BESc <- ifelse(is.nan(Sim_3$BESc), 1, Sim_3$BESc)
+
+Sim_3$n_sample <- Sim_3$n_sample*3
 
 # Add indicator or partial
-Sim_4$ind_p_all <- ifelse(Sim_4$ind_p1 == 1 & Sim_4$ind_p2 == 1 & Sim_4$ind_p3 == 1, 1, 0)
+Sim_3$ind_p_all <- ifelse(Sim_3$ind_p1 == 1 & Sim_3$ind_p2 == 1 & Sim_3$ind_p3 == 1, 1, 0)
 
-Sim_4_agg <- Sim_4 %>%
+Sim_3 <- Sim_3 %>%
+  group_by(n_sample, d, c) %>%
+  mutate(
+    MAPDu = abs((PMP1u_H - BESu) / PMP1u_H) * 100, # mean average percentage difference
+    MSDu = PMP1u_H - BESu, # mean signed difference
+    MAPDc = abs((PMP1c_H - BESc) / PMP1c_H) * 100, # mean average percentage difference
+    MSDc = PMP1c_H - BESc # mean signed difference
+  )
+
+Sim_3$MAPDu[is.na.data.frame(Sim_3$MAPDu)] <- 0
+max_mapdu <- max(Sim_3$MAPDu[is.finite(Sim_3$MAPDu)])
+Sim_3$MAPDu[is.infinite(Sim_3$MAPDu)] <- max_mapdu
+
+Sim_3$MAPDc[is.na.data.frame(Sim_3$MAPDc)] <- 0
+max_mapdc <- max(Sim_3$MAPDc[is.finite(Sim_3$MAPDc)])
+Sim_3$MAPDc[is.infinite(Sim_3$MAPDc)] <- max_mapdc
+
+Sim_3_agg <- Sim_3 %>%
   group_by(n_sample, c, d) %>%
   summarise(PMP1u_H = mean(PMP1u_H),
             PMP1c_H = mean(PMP1c_H),
             BESc = mean(BESc),
-            BESu = mean(BESu))
+            BESu = mean(BESu),
+            MAPDu = mean(MAPDu),
+            MAPDc = mean(MAPDc),
+            MSDu = mean(MSDu),
+            MSDc = mean(MSDc))
 
-########################################################################
-## Lineplot: Bayes Factor tested against the unconstrained Hypothesis ##
-########################################################################
+#############################################################################
+## Lineplot MAPD: Bayes Factor tested against the unconstrained Hypothesis ##
+#############################################################################
 
-lineplot_unconstrained <- Sim_4_agg %>% ggplot() +
+lineplot_MAPD_unconstrained <- Sim_3_agg %>% filter(d != 0) %>% ggplot() +
   geom_line(aes(
     x = as.factor(n_sample),
-    y = PMP1u_H,
-    linetype = "Complete",
-    color = "Complete",
+    y = MAPDu,
+    color = as.factor(d),
     group = 1
   )) +
-  geom_line(aes(
-    x = as.factor(n_sample),
-    y = BESu,
-    linetype = "BES",
-    color = "BES",
-    group = 1
-  )) +
-  scale_linetype_manual(name = "Hypothesis",
-                        values = c("Complete" = "solid", "BES" = "longdash")) +
-  scale_color_manual(name = "Hypothesis",
-                     values = c("Complete" = "#00BFC4", "BES" = "#F8766D")) +
-  ggtitle("Comparison PMPs of BES and complete Hypothesis against the Unconstrained") +
-  labs(x = "Sample Size", y = "Posterior Model Probabilities") +
-  geom_hline(yintercept = 8/(8+1), color = "black", linetype = "dotted", alpha = 0.5) +
-  geom_hline(yintercept = 24/(24+1), color = "grey", linetype = "dotted", alpha = 0.5) +
+  labs(x = "Sample Size (Total)", y = "MAPD") +
+  ggtitle("MAPD: Tested against unconstrained Hypothesis") +
+  scale_color_discrete(guide = "none") +
   theme_bw() +
   facet_grid(c ~ d) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-ggsave(paste0("plots/Sim4/s4_lineplot_unconstrained",".pdf"), lineplot_unconstrained, 
+ggsave(paste0("plots/Sim3/s3_lineplot_MAPD_unconstrained",".pdf"), lineplot_MAPD_unconstrained, 
        width = 21, height = 29.7, units = "cm", dpi = 300)
 
-#####################################################################
-## Lineplot: Bayes Factor tested against the complement Hypothesis ##
-#####################################################################
+##########################################################################
+## Lineplot MAPD: Bayes Factor tested against the complement Hypothesis ##
+##########################################################################
 
-lineplot_complement <- Sim_4_agg %>% ggplot() +
+lineplot_MAPD_complement <- Sim_3_agg %>% filter(d != 0) %>% ggplot() +
   geom_line(aes(
     x = as.factor(n_sample),
-    y = PMP1c_H,
-    linetype = "Complete",
-    color = "Complete",
+    y = MAPDc,
+    color = as.factor(d),
     group = 1
   )) +
-  geom_line(aes(
-    x = as.factor(n_sample),
-    y = BESc,
-    linetype = "BES",
-    color = "BES",
-    group = 1
-  )) +
-  scale_linetype_manual(name = "Hypothesis",
-                        values = c("Complete" = "solid", "BES" = "longdash")) +
-  scale_color_manual(name = "Hypothesis",
-                     values = c("Complete" = "#00BFC4", "BES" = "#F8766D")) +
-  labs(x = "Sample Size", y = "Posterior Model Probabilities") +
-  ggtitle("Comparison PMPs of BES and complete Hypothesis against the Complement") +
+  labs(x = "Sample Size (Total)", y = "MAPD") +
+  ggtitle("MAPD: Tested against complement Hypothesis") +
+  scale_color_discrete(guide = "none") +
   theme_bw() +
   facet_grid(c ~ d) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-ggsave(paste0("plots/Sim4/s4_lineplot_complement",".pdf"), lineplot_complement, 
+ggsave(paste0("plots/Sim3/s3_lineplot_MAPD_complement",".pdf"), lineplot_MAPD_complement, 
        width = 21, height = 29.7, units = "cm", dpi = 300)
 
 
-########################
-## Distplot all cases ##
-########################
+#########################
+## Distplots all cases ##
+#########################
 
 # Define parameters
 sample_sizes <- c(75, 150, 300, 1500)
@@ -143,7 +143,7 @@ for (n in sample_sizes) {
     for (eff in effect_sizes) {
       
       # Filter data for current combination
-      filtered_data <- Sim_4 %>% 
+      filtered_data <- Sim_3 %>% 
         filter(n_sample == n & c == corr & d == eff)
       
       # Skip if no data for this combination
@@ -156,15 +156,11 @@ for (n in sample_sizes) {
         
         p <- filtered_data %>%
           ggplot(aes(x = .data[[config$var]], 
-                     #fill = factor(.data[[config$fill_var]]), 
-                     #color = factor(.data[[config$fill_var]])
-                     )
-                 ) +
+                     fill = factor(.data[[config$fill_var]]), 
+                     color = factor(.data[[config$fill_var]]))) +
           
           stat_dots(
             aes(y = 0),
-            fill = "#7F1D1D",
-            color = "#7F1D1D",
             side = "top",
             scale = 0.8,
             alpha = 0.6,
@@ -173,8 +169,6 @@ for (n in sample_sizes) {
           
           geom_boxplot(
             aes(y = -0.15),
-            fill = "#E6B8B8",
-            color = "#7F1D1D",
             width = 0.05,
             outlier.shape = 16,
             outlier.size = 1,
@@ -188,9 +182,9 @@ for (n in sample_sizes) {
             title = paste0(config$title, 
                            "\nn = ", n, ", c = ", corr, ", d = ", eff),
             x = config$x_label,
-            y = ""#,
-            #fill = "Hypothesis Indicator",
-            #color = "Hypothesis Indicator"
+            y = "",
+            fill = "Hypothesis Indicator",
+            color = "Hypothesis Indicator"
           ) +
           theme(
             strip.text = element_text(size = 11, face = "bold"),
@@ -200,7 +194,7 @@ for (n in sample_sizes) {
           )
         
         # Create filename
-        filename <- paste0("plots/Sim4/", config$name, 
+        filename <- paste0("plots/Sim3/", config$name, 
                            "_n", n, "_c", corr, "_d", eff, ".pdf")
         
         # Save plot

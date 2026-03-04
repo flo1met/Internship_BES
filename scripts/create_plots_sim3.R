@@ -16,7 +16,7 @@ df_with_na <- Sim_3[apply(is.na(Sim_3), 1, any), ]
 # "impute" all NaN with 1 because:
 cumprod(c(1,0,1)) / (cumprod(c(1,0,1)) + cumprod(c(1-1,1-0,1-1)))
 
-cumprod(c(1,0.0000001,1)) / (cumprod(c(1,0.0000001,1)) + cumprod(c(1-1,1-0.0000001,1-1)))
+cumprod(c(1,0.0001,1)) / (cumprod(c(1,0.0001,1)) + cumprod(c(1-1,1-0.0001,1-1)))
 
 # correct?
 Sim_3$BESc <- ifelse(is.nan(Sim_3$BESc), 1, Sim_3$BESc)
@@ -29,11 +29,20 @@ Sim_3$ind_p_all <- ifelse(Sim_3$ind_p1 == 1 & Sim_3$ind_p2 == 1 & Sim_3$ind_p3 =
 Sim_3 <- Sim_3 %>%
   group_by(n_sample, d, c) %>%
   mutate(
-    MAPDu = abs((PMP1u_H - BESu) / PMP1u_H) * 100, # mean average percentage difference
+    MDu = abs(PMP1u_H - BESu), # mean average percentage difference
     MSDu = PMP1u_H - BESu, # mean signed difference
-    MAPDc = abs((PMP1c_H - BESc) / PMP1c_H) * 100, # mean average percentage difference
+    MDc = abs(PMP1c_H - BESc), # mean average percentage difference
     MSDc = PMP1c_H - BESc # mean signed difference
   )
+
+#instead of imputation we switch to a threshhold in the denominator. pmax(PMP1u_H, 1e-6) -> prevents division by 0, no infinite and NaN values
+
+# Sim_3$MAPDu[is.na.data.frame(Sim_3$MAPDu)] <- 0
+# max_mapdu <- max(Sim_3$MAPDu[is.finite(Sim_3$MAPDu)])
+# Sim_3$MAPDu[is.infinite(Sim_3$MAPDu)] <- max_mapdu
+# Sim_3$MAPDc[is.na.data.frame(Sim_3$MAPDc)] <- 0
+# max_mapdc <- max(Sim_3$MAPDc[is.finite(Sim_3$MAPDc)])
+# Sim_3$MAPDc[is.infinite(Sim_3$MAPDc)] <- max_mapdc
 
 Sim_3_agg <- Sim_3 %>%
   group_by(n_sample, c, d) %>%
@@ -41,8 +50,8 @@ Sim_3_agg <- Sim_3 %>%
             PMP1c_H = mean(PMP1c_H),
             BESc = mean(BESc),
             BESu = mean(BESu),
-            MAPDu = mean(MAPDu),
-            MAPDc = mean(MAPDc),
+            MDu = mean(MDu),
+            MDc = mean(MDc),
             MSDu = mean(MSDu),
             MSDc = mean(MSDc))
 
@@ -50,43 +59,85 @@ Sim_3_agg <- Sim_3 %>%
 ## Lineplot MAPD: Bayes Factor tested against the unconstrained Hypothesis ##
 #############################################################################
 
-lineplot_MAPD_unconstrained <- Sim_3_agg %>% filter(d != 0) %>% ggplot() +
-  geom_line(aes(
-    x = as.factor(n_sample),
-    y = MAPDu,
-    color = as.factor(d),
-    group = 1
-  )) +
-  labs(x = "Sample Size (Total)", y = "MAPD") +
-  ggtitle("MAPD: Tested against unconstrained Hypothesis") +
-  scale_color_discrete(guide = "none") +
-  theme_bw() +
-  facet_grid(c ~ d) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-ggsave(paste0("plots/Sim3/s3_lineplot_MAPD_unconstrained",".pdf"), lineplot_MAPD_unconstrained, 
-       width = 21, height = 29.7, units = "cm", dpi = 300)
+# lineplot_MAPD_unconstrained <- Sim_3_agg %>% filter(d != 0) %>% ggplot() +
+#   geom_line(aes(
+#     x = as.factor(n_sample),
+#     y = MAPDu,
+#     color = as.factor(d),
+#     group = 1
+#   )) +
+#   labs(x = "Sample Size (Total)", y = "MAPD") +
+#   ggtitle("MAPD: Tested against unconstrained Hypothesis") +
+#   scale_color_discrete(guide = "none") +
+#   theme_bw() +
+#   facet_grid(c ~ d) +
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+# 
+# ggsave(paste0("plots/Sim3/s3_lineplot_MAPD_unconstrained",".pdf"), lineplot_MAPD_unconstrained, 
+#        width = 21, height = 29.7, units = "cm", dpi = 300)
 
 ##########################################################################
 ## Lineplot MAPD: Bayes Factor tested against the complement Hypothesis ##
 ##########################################################################
 
-lineplot_MAPD_complement <- Sim_3_agg %>% filter(d != 0) %>% ggplot() +
-  geom_line(aes(
-    x = as.factor(n_sample),
-    y = MAPDc,
-    color = as.factor(d),
-    group = 1
-  )) +
-  labs(x = "Sample Size (Total)", y = "MAPD") +
-  ggtitle("MAPD: Tested against complement Hypothesis") +
-  scale_color_discrete(guide = "none") +
-  theme_bw() +
-  facet_grid(c ~ d) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-ggsave(paste0("plots/Sim3/s3_lineplot_MAPD_complement",".pdf"), lineplot_MAPD_complement, 
-       width = 21, height = 29.7, units = "cm", dpi = 300)
+# lineplot_MAPD_complement <- Sim_3_agg %>% filter(d != 0) %>% ggplot() +
+#   geom_line(aes(
+#     x = as.factor(n_sample),
+#     y = MAPDc,
+#     color = as.factor(d),
+#     group = 1
+#   )) +
+#   labs(x = "Sample Size (Total)", y = "MAPD") +
+#   ggtitle("MAPD: Tested against complement Hypothesis") +
+#   scale_color_discrete(guide = "none") +
+#   theme_bw() +
+#   facet_grid(c ~ d) +
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+# ggsave(paste0("plots/Sim3/s3_lineplot_MAPD_complement",".pdf"), lineplot_MAPD_complement, 
+#        width = 21, height = 29.7, units = "cm", dpi = 300)
 
+
+##########################################################################
+## Lineplot MAPD combined ##
+##########################################################################
+
+lineplot_MD_combined <- Sim_3_agg %>%
+  filter(d != 0) %>%
+  pivot_longer(
+    cols = c(MDu, MDc),
+    names_to = "hypothesis",
+    values_to = "MD"
+  ) %>%
+  mutate(
+    hypothesis = recode(
+      hypothesis,
+      MAPDu = "Unconstrained",
+      MAPDc = "Complement"
+    )
+  ) %>%
+  ggplot(aes(
+    x = as.factor(n_sample),
+    y = MD,
+    color = hypothesis,
+    linetype = hypothesis,
+    group = hypothesis
+  )) +
+  geom_line(linewidth = 0.6) +
+  facet_grid(c ~ d) +
+  labs(
+    x = "Sample Size (Total)",
+    y = "MD",
+    linetype = "Tested hypothesis",
+    title = "MD across sample size",
+    subtitle = "Unconstrained vs Complement hypothesis"
+  ) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+
+ggsave(paste0("plots/Sim3/s3_lineplot_MD_combined",".pdf"), lineplot_MD_combined, 
+       width = 21, height = 29.7, units = "cm", dpi = 300)
 
 #########################
 ## Distplots all cases ##
@@ -100,32 +151,18 @@ effect_sizes <- c(0, 0.2, 0.5, 0.8)
 # Define plot configurations
 plot_configs <- list(
   list(
-    var = "BESc",
+    var = "MSDc",
     fill_var = "ind_comp",
     title = "Bayesian Evidence Synthesis against Complement",
-    x_label = "Posterior Model Probabilities against Complement",
-    name = "BESc_complement"
+    x_label = "Mean Signed Difference against Complement",
+    name = "MSDc_complement"
   ),
   list(
-    var = "PMP1c_H",
-    fill_var = "ind_p_all",
-    title = "PMPs against Complement",
-    x_label = "Posterior Model Probabilities",
-    name = "PMP1c_complement"
-  ),
-  list(
-    var = "BESu",
+    var = "MSDu",
     fill_var = "ind_comp",
     title = "Bayesian Evidence Synthesis against Unconstrained",
-    x_label = "Posterior Model Probabilities",
-    name = "BESu_unconstrained"
-  ),
-  list(
-    var = "PMP1u_H",
-    fill_var = "ind_p_all",
-    title = "PMPs against Unconstrained",
-    x_label = "Posterior Model Probabilities",
-    name = "PMP1u_unconstrained"
+    x_label = "Mean Signed Difference against Unconstrained",
+    name = "MSDu_unconstrained"
   )
 )
 
@@ -148,8 +185,9 @@ for (n in sample_sizes) {
         
         p <- filtered_data %>%
           ggplot(aes(x = .data[[config$var]], 
-                     fill = factor(.data[[config$fill_var]]), 
-                     color = factor(.data[[config$fill_var]]))) +
+                     #fill = factor(.data[[config$fill_var]]), 
+                     #color = factor(.data[[config$fill_var]])
+                     )) +
           
           stat_dots(
             aes(y = 0),
@@ -175,8 +213,8 @@ for (n in sample_sizes) {
                            "\nn = ", n, ", c = ", corr, ", d = ", eff),
             x = config$x_label,
             y = "",
-            fill = "Hypothesis Indicator",
-            color = "Hypothesis Indicator"
+            #fill = "Hypothesis Indicator",
+            #color = "Hypothesis Indicator"
           ) +
           theme(
             strip.text = element_text(size = 11, face = "bold"),

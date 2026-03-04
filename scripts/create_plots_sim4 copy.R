@@ -4,7 +4,7 @@ library(tidyquant)
 library(ggdist)
 
 # Create plots directory if it doesn't exist
-if (!dir.exists("plots/Sim4/")) {
+if (!dir.exists("plots/Sim4/")) {y
   dir.create("plots/Sim4/", recursive = TRUE)
 }
 
@@ -156,15 +156,11 @@ for (n in sample_sizes) {
         
         p <- filtered_data %>%
           ggplot(aes(x = .data[[config$var]], 
-                     #fill = factor(.data[[config$fill_var]]), 
-                     #color = factor(.data[[config$fill_var]])
-                     )
-                 ) +
+                     fill = factor(.data[[config$fill_var]]), 
+                     color = factor(.data[[config$fill_var]]))) +
           
           stat_dots(
             aes(y = 0),
-            fill = "#7F1D1D",
-            color = "#7F1D1D",
             side = "top",
             scale = 0.8,
             alpha = 0.6,
@@ -173,8 +169,6 @@ for (n in sample_sizes) {
           
           geom_boxplot(
             aes(y = -0.15),
-            fill = "#E6B8B8",
-            color = "#7F1D1D",
             width = 0.05,
             outlier.shape = 16,
             outlier.size = 1,
@@ -188,9 +182,9 @@ for (n in sample_sizes) {
             title = paste0(config$title, 
                            "\nn = ", n, ", c = ", corr, ", d = ", eff),
             x = config$x_label,
-            y = ""#,
-            #fill = "Hypothesis Indicator",
-            #color = "Hypothesis Indicator"
+            y = "",
+            fill = "Hypothesis Indicator",
+            color = "Hypothesis Indicator"
           ) +
           theme(
             strip.text = element_text(size = 11, face = "bold"),
