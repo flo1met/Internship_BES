@@ -145,12 +145,16 @@ lineplot_MD_combined <- Sim_1_agg %>%
     name = "Comparison",
     values = c("vs. Unconstrained" = "solid", "vs. Complement" = "longdash")
   ) +
-  facet_grid(c ~ d) +
+  facet_grid(c ~ d, labeller = labeller(
+    c = as_labeller(function(x) paste0("rho[i]==", x), label_parsed),
+    d = as_labeller(function(x) paste0("mu[i]==", x), label_parsed)
+  )) +
   labs(
     x = "Sample Size (Total)",
     y = "MD"
   ) +
-  theme_minimal(base_size = 11) +
+  coord_cartesian(ylim = c(0, 1)) +
+  theme_bw(base_size = 11) +
   theme(
     axis.text.x = element_text(angle = 45, hjust = 1),
     legend.position = "bottom",
@@ -203,14 +207,22 @@ for (n in sample_sizes) {
       
       # Create each plot type
       for (config in plot_configs) {
-        
         p <- filtered_data %>%
           ggplot(aes(x = .data[[config$var]])) +
+          geom_vline(
+            xintercept = 0,
+            linetype = "dashed",
+            color = "grey40",
+            linewidth = 0.4,
+            alpha = 0.8
+          ) +
           
           stat_dots(
-            aes(y = 0),
-            fill = col_primary,
-            color = col_primary,
+            aes(
+              y = 0,
+              fill = factor(.data[[config$fill_var]], levels = c(0, 1), labels = c("0", "1")),
+              color = factor(.data[[config$fill_var]], levels = c(0, 1), labels = c("0", "1"))
+            ),
             side = "top",
             scale = 0.8,
             alpha = 0.6,
@@ -227,19 +239,28 @@ for (n in sample_sizes) {
             outlier.alpha = 0.1,
             alpha = 0.7
           ) +
+          scale_fill_manual(
+            name = "Hypothesis indicator (ind_comp)",
+            values = c("0" = col_secondary, "1" = col_primary)
+          ) +
+          scale_color_manual(
+            name = "Hypothesis indicator (ind_comp)",
+            values = c("0" = col_secondary, "1" = col_primary)
+          ) +
           
           theme_minimal(base_size = 11) +
           labs(
-            title = paste0(config$title,
-                           "\nn = ", n, ", c = ", corr, ", d = ", eff),
+            title = bquote(n[i] == .(n) ~ ", " ~ rho[i] == .(corr) ~ ", " ~ mu[i] == .(eff)),
             x = config$x_label,
             y = ""
           ) +
+          coord_cartesian(xlim = c(0, 1)) +
           theme(
             strip.text = element_text(size = 11, face = "bold"),
             axis.text.y = element_blank(),
             axis.ticks.y = element_blank(),
-            plot.title = element_text(hjust = 0.5)
+            plot.title = element_text(hjust = 0.5),
+            legend.position = "bottom"
           )
         
         # Create filename

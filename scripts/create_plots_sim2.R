@@ -61,8 +61,12 @@ lineplot_unconstrained <- Sim_2_agg %>% ggplot() +
     x = "Sample Size",
     y = "Posterior Model Probabilities"
   ) +
-  theme_minimal(base_size = 11) +
-  facet_grid(c ~ d) +
+  coord_cartesian(ylim = c(0, 1)) +
+  theme_bw(base_size = 11) +
+  facet_grid(c ~ d, labeller = labeller(
+    c = as_labeller(function(x) paste0("rho[i]==", x), label_parsed),
+    d = as_labeller(function(x) paste0("mu[i]==", x), label_parsed)
+  )) +
   theme(
     axis.text.x = element_text(angle = 45, hjust = 1),
     legend.position = "bottom",
@@ -100,8 +104,12 @@ lineplot_complement <- Sim_2_agg %>% ggplot() +
     x = "Sample Size",
     y = "Posterior Model Probabilities"
   ) +
-  theme_minimal(base_size = 11) +
-  facet_grid(c ~ d) +
+  coord_cartesian(ylim = c(0, 1)) +
+  theme_bw(base_size = 11) +
+  facet_grid(c ~ d, labeller = labeller(
+    c = as_labeller(function(x) paste0("rho[i]==", x), label_parsed),
+    d = as_labeller(function(x) paste0("mu[i]==", x), label_parsed)
+  )) +
   theme(
     axis.text.x = element_text(angle = 45, hjust = 1),
     legend.position = "bottom",
@@ -126,7 +134,7 @@ plot_configs <- list(
     var = "BESc",
     fill_var = "ind_comp",
     title = "Bayesian Evidence Synthesis against Complement",
-    x_label = "Posterior Model Probabilities against Complement",
+    x_label = "Posterior Model Probabilities",
     name = "BESc_complement"
   ),
   list(
@@ -195,11 +203,11 @@ for (n in sample_sizes) {
           
           theme_minimal(base_size = 11) +
           labs(
-            title = paste0(config$title,
-                           "\nn = ", n, ", c = ", corr, ", d = ", eff),
+            title = bquote(n[i] == .(n) ~ ", " ~ rho[i] == .(corr) ~ ", " ~ mu[i] == .(eff)),
             x = config$x_label,
             y = ""
           ) +
+          coord_cartesian(xlim = c(0, 1)) +
           theme(
             strip.text = element_text(size = 11, face = "bold"),
             axis.text.y = element_blank(),

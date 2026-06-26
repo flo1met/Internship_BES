@@ -17,7 +17,7 @@ df_with_na <- Sim_4[apply(is.na(Sim_4), 1, any), ]
 # "impute" all NaN with 1 because:
 cumprod(c(1,0,1)) / (cumprod(c(1,0,1)) + cumprod(c(1-1,1-0,1-1)))
 
-cumprod(c(1,0.0000001,1)) / (cumprod(c(1,0.0000001,1)) + cumprod(c(1-1,1-0.0000001,1-1)))
+cumprod(c(1,0.0000000001,1)) / (cumprod(c(1,0.0000000001,1)) + cumprod(c(1-1,1-0.0000000001,1-1)))
 
 # correct?
 Sim_4$BESc <- ifelse(is.nan(Sim_4$BESc), 1, Sim_4$BESc)
@@ -62,15 +62,19 @@ lineplot_unconstrained <- Sim_4_agg %>% ggplot() +
     x = "Sample Size",
     y = "Posterior Model Probabilities"
   ) +
-  theme_minimal(base_size = 11) +
-  facet_grid(c ~ d) +
+  coord_cartesian(ylim = c(0, 1)) +
+  theme_bw(base_size = 11) +
+  facet_grid(c ~ d, labeller = labeller(
+    c = as_labeller(function(x) paste0("rho[i]==", x), label_parsed),
+    d = as_labeller(function(x) paste0("mu[i]==", x), label_parsed)
+  )) +
   theme(
     axis.text.x = element_text(angle = 45, hjust = 1),
     legend.position = "bottom",
     strip.text = element_text(face = "bold")
   )
 
-ggsave(paste0("plots/Sim4/s4_lineplot_unconstrained",".pdf"), lineplot_unconstrained, 
+ggsave("plots/Sim4/s4_lineplot_unconstrained.pdf", lineplot_unconstrained, 
        width = 21, height = 29.7, units = "cm", dpi = 300)
 
 #####################################################################
@@ -100,15 +104,19 @@ lineplot_complement <- Sim_4_agg %>% ggplot() +
     x = "Sample Size",
     y = "Posterior Model Probabilities"
   ) +
-  theme_minimal(base_size = 11) +
-  facet_grid(c ~ d) +
+  coord_cartesian(ylim = c(0, 1)) +
+  theme_bw(base_size = 11) +
+  facet_grid(c ~ d, labeller = labeller(
+    c = as_labeller(function(x) paste0("rho[i]==", x), label_parsed),
+    d = as_labeller(function(x) paste0("mu[i]==", x), label_parsed)
+  )) +
   theme(
     axis.text.x = element_text(angle = 45, hjust = 1),
     legend.position = "bottom",
     strip.text = element_text(face = "bold")
   )
 
-ggsave(paste0("plots/Sim4/s4_lineplot_complement",".pdf"), lineplot_complement, 
+ggsave("plots/Sim4/s4_lineplot_complement.pdf", lineplot_complement, 
        width = 21, height = 29.7, units = "cm", dpi = 300)
 
 
@@ -127,7 +135,7 @@ plot_configs <- list(
     var = "BESc",
     fill_var = "ind_comp",
     title = "Bayesian Evidence Synthesis against Complement",
-    x_label = "Posterior Model Probabilities against Complement",
+    x_label = "Posterior Model Probabilities",
     name = "BESc_complement"
   ),
   list(
@@ -196,11 +204,11 @@ for (n in sample_sizes) {
           
           theme_minimal(base_size = 11) +
           labs(
-            title = paste0(config$title,
-                           "\nn = ", n, ", c = ", corr, ", d = ", eff),
+            title = bquote(n[i] == .(n) ~ ", " ~ rho[i] == .(corr) ~ ", " ~ mu[i] == .(eff)),
             x = config$x_label,
             y = ""
           ) +
+          coord_cartesian(xlim = c(0, 1)) +
           theme(
             strip.text = element_text(size = 11, face = "bold"),
             axis.text.y = element_blank(),
