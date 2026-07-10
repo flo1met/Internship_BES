@@ -1,0 +1,662 @@
+---
+title: "Simulateion 1&2"
+format: html
+---
+
+Start Timer
+```{r}
+t1 <- Sys.time()
+```
+
+```{r}
+library(MASS)
+library(tidyverse)
+library(BFpack)
+library(purrr)
+source("../scripts/function.R")
+```
+
+# Global Parameters
+```{r}
+# seed
+set.seed(1337)
+
+# number of simulations
+nsim <- 5000
+
+# sample and effect sizes
+d <- c(0, 0.2, 0.5, 0.8)
+c <- c(0, 0.2, 0.5, 0.8)
+```
+
+# Simulation 1&2
+Define Hypotheses
+```{r}
+h_p1 <- "mu_1 > mu_2"
+h_p2 <- "mu_2 > mu_3"
+h_p3 <- "mu_3 > mu_4"
+H <- "mu_1 > mu_2 > mu_3 > mu_4"
+```
+
+## Simulation 1
+
+### Simulation 1 Study 1
+```{r}
+n_sample <- c(25, 50, 100, 500)
+```
+
+Simulates one dataset in which we test H_complete against BES, calculated from the same dataset.
+```{r}
+Sim_1_Study_1 <- simulate(nsim = nsim,
+                      n_sample = n_sample,
+                      d = d,
+                      c = c) %>%
+    rowwise() %>%
+    mutate(
+      BF_h_p1 = list(
+        BF(
+          x = s_mu,
+          Sigma = s_Sigma / n_sample,
+          n = n_sample,
+          hypothesis = h_p1
+        )
+      ),
+      BF1u_h_p1 = BF_h_p1$BFtu_confirmatory[[1]],
+      PMP1c_h_p1 = BF_h_p1$PHP_confirmatory[[1]],
+      PMP1u_h_p1 = BF1u_h_p1 / (BF1u_h_p1 + 1)) %>%
+  addIndicator("p1")
+
+```
+
+### Sim_1_Study_2: Partial Hypothesis mu_2 > mu_3
+```{r}
+Sim_1_Study_2 <- simulate(nsim = nsim,
+                      n_sample = n_sample,
+                      d = d,
+                      c = c) %>%
+    rowwise() %>%
+    mutate(
+      BF_h_p2 = list(
+        BF(
+          x = s_mu,
+          Sigma = s_Sigma / n_sample,
+          n = n_sample,
+          hypothesis = h_p2
+        )
+      ),
+      BF1u_h_p2 = BF_h_p2$BFtu_confirmatory[[1]],
+      PMP1c_h_p2 = BF_h_p2$PHP_confirmatory[[1]],
+      PMP1u_h_p2 = BF1u_h_p2 / (BF1u_h_p2 + 1)) %>%
+  addIndicator("p2")
+
+```
+
+### Sim_1_Study_3: Partial Hypothesis mu_3 > mu_4
+```{r}
+Sim_1_Study_3 <- simulate(nsim = nsim,
+                      n_sample = n_sample,
+                      d = d,
+                      c = c) %>%
+    rowwise() %>%
+    mutate(
+      BF_h_p3 = list(
+        BF(
+          x = s_mu,
+          Sigma = s_Sigma / n_sample,
+          n = n_sample,
+          hypothesis = h_p3
+        )
+      ),
+      BF1u_h_p3 = BF_h_p3$BFtu_confirmatory[[1]],
+      PMP1c_h_p3 = BF_h_p3$PHP_confirmatory[[1]],
+      PMP1u_h_p3 = BF1u_h_p3 / (BF1u_h_p3 + 1)) %>%
+  addIndicator("p3")
+
+```
+
+### Sim_1_Study_4: Aggregate Study 1-3 for complete Dataset
+```{r}
+#df_list <- list(Sim_1_Study_1, Sim_1_Study_2, Sim_1_Study_3)
+
+# Compute the element-wise mean of s_mu (ensuring a vector output)
+pooled_s_mu <- map2(Sim_1_Study_1$s_mu, 
+                    map2(Sim_1_Study_2$s_mu, Sim_1_Study_3$s_mu, `+`), 
+                    ~ (.x + .y) / 3)
+
+# Compute the element-wise mean of s_Sigma (ensuring a matrix output)
+pooled_s_Sigma <- map2(Sim_1_Study_1$s_Sigma, 
+                       map2(Sim_1_Study_2$s_Sigma, Sim_1_Study_3$s_Sigma, `+`), 
+                       ~ (.x + .y) / 3)
+
+# Create a new DataFrame with the right format
+Sim_1 <- Sim_1_Study_1 %>%
+  select(nsim, n_sample, d, c, PMP1c_h_p1, PMP1u_h_p1, ind_p1) %>%
+  left_join(Sim_1_Study_2 %>% select(nsim, n_sample, d, c, PMP1c_h_p2, PMP1u_h_p2, ind_p2), by = c("nsim", "n_sample", "d", "c")) %>%
+  left_join(Sim_1_Study_3 %>% select(nsim, n_sample, d, c, PMP1c_h_p3, PMP1u_h_p3, ind_p3), by = c("nsim", "n_sample", "d", "c"))
+
+# Remove partial DFs, as all information is contained in pooled df
+rm(Sim_1_Study_1, Sim_1_Study_2, Sim_1_Study_3) 
+
+Sim_1$s_mu <- pooled_s_mu
+Sim_1$s_Sigma <- pooled_s_Sigma
+
+Sim_1 <- Sim_1 %>%
+  rowwise() %>%
+   mutate(
+    BF_H = list(BF(
+      x = s_mu,
+      Sigma = s_Sigma / (n_sample * 3), # multiply sample size by 3 to pool partial sample sizes
+      n = n_sample * 3,
+      hypothesis = H
+    )),
+    BF1u_H = BF_H$BFtu_confirmatory[[1]],
+    PMP1c_H = BF_H$PHP_confirmatory[[1]],
+    PMP1u_H = BF1u_H / (BF1u_H + 1)
+  ) %>%
+  addIndicator("comp")
+
+```
+
+### Clean outcome DF and compute BES
+```{r}
+Sim_1 <- Sim_1 %>%
+  select(-c("s_mu", "s_Sigma", "BF_H", "BF1u_H")) %>%
+  mutate(
+    BESc = prod(PMP1c_h_p1, PMP1c_h_p2, PMP1c_h_p3) / (
+      prod(PMP1c_h_p1, PMP1c_h_p2, PMP1c_h_p3) + prod(1 - PMP1c_h_p1, 1 - PMP1c_h_p2, 1 -
+                                                        PMP1c_h_p3)
+    ),
+    BESu = prod(PMP1u_h_p1, PMP1u_h_p2, PMP1u_h_p3) / (
+      prod(PMP1u_h_p1, PMP1u_h_p2, PMP1u_h_p3) + prod(1 - PMP1u_h_p1, 1 - PMP1u_h_p2, 1 -
+                                                        PMP1u_h_p3)
+    )
+  )
+```
+
+```{r}
+save(Sim_1, file = "../data/Sim_1.RData")
+```
+
+
+Timer
+```{r}
+Sys.time() - t1
+```
+
+Clean Workspace
+```{r}
+rm(Sim_1)
+```
+
+
+## Simulation 2
+
+
+### Simulation 2 Study 1: Complete Hypothesis
+```{r}
+n_sample <- c(75, 150, 300, 1500)
+```
+
+```{r}
+Sim_2_Study_1 <- simulate(nsim = nsim,
+                      n_sample = n_sample,
+                      d = d,
+                      c = c) %>%
+    rowwise() %>%
+    mutate(
+      # BF Complete Hypothesis
+      BF_H = list(
+        BF(
+          x = s_mu,
+          Sigma = s_Sigma / n_sample,
+          n = n_sample,
+          hypothesis = H
+        )
+      ),
+      BF1u_H = BF_H$BFtu_confirmatory[[1]],
+      PMP1c_H = BF_H$PHP_confirmatory[[1]],
+      PMP1u_H = BF1u_H / (BF1u_H + 1)) %>%
+  addIndicator("comp")
+```
+
+### Set Saple Size for partial Studies
+```{r}
+n_sample <- c(25, 50, 100, 500)
+```
+
+### Simulation 2 Study 2: mu_1 > mu_2
+```{r}
+Sim_2_Study_2 <- simulate(nsim = nsim,
+                      n_sample = n_sample,
+                      d = d,
+                      c = c) %>%
+    rowwise() %>%
+    mutate(
+      # BF Partial Study 1
+      BF_h_p1 = list(
+        BF(
+          x = s_mu,
+          Sigma = s_Sigma / n_sample,
+          n = n_sample,
+          hypothesis = h_p1
+        )
+      ),
+      BF1u_h_p1 = BF_h_p1$BFtu_confirmatory[[1]],
+      PMP1c_h_p1 = BF_h_p1$PHP_confirmatory[[1]],
+      PMP1u_h_p1 = BF1u_h_p1 / (BF1u_h_p1 + 1)
+    ) %>%
+  addIndicator("p1")
+```
+
+
+### Simulation 2 Study 3: mu_2 > mu_3
+```{r}
+Sim_2_Study_3 <- simulate(nsim = nsim,
+                      n_sample = n_sample,
+                      d = d,
+                      c = c) %>%
+    rowwise() %>%
+    mutate(
+      # BF Partial Study 2
+      BF_h_p2 = list(
+        BF(
+          x = s_mu,
+          Sigma = s_Sigma / n_sample,
+          n = n_sample,
+          hypothesis = h_p2
+        )
+      ),
+      BF1u_h_p2 = BF_h_p2$BFtu_confirmatory[[1]],
+      PMP1c_h_p2 = BF_h_p2$PHP_confirmatory[[1]],
+      PMP1u_h_p2 = BF1u_h_p2 / (BF1u_h_p2 + 1)
+    ) %>%
+  addIndicator("p2")
+```
+
+
+### Simulation 2 Study 4: mu_3 > mu_4
+```{r}
+Sim_2_Study_4 <- simulate(nsim = nsim,
+                      n_sample = n_sample,
+                      d = d,
+                      c = c) %>%
+    rowwise() %>%
+    mutate(
+      # BF Partial Study 3
+      BF_h_p3 = list(
+        BF(
+          x = s_mu,
+          Sigma = s_Sigma / n_sample,
+          n = n_sample,
+          hypothesis = h_p3
+        )
+      ),
+      BF1u_h_p3 = BF_h_p3$BFtu_confirmatory[[1]],
+      PMP1c_h_p3 = BF_h_p3$PHP_confirmatory[[1]],
+      PMP1u_h_p3 = BF1u_h_p3 / (BF1u_h_p3 + 1)
+    ) %>%
+  addIndicator("p3")
+```
+
+### Process Simulation 2
+```{r}
+# Sample Size to match partial studies
+Sim_2_Study_1$n_sample <- Sim_2_Study_1$n_sample/3
+```
+
+```{r}
+Sim_2 <- Sim_2_Study_2 %>%
+  select(nsim, n_sample, d, c, PMP1c_h_p1, PMP1u_h_p1, ind_p1)  %>%
+  left_join(
+    Sim_2_Study_3 %>% select(nsim, n_sample, d, c, PMP1c_h_p2, PMP1u_h_p2, ind_p2),
+    by = c("nsim", "n_sample", "d", "c")
+  ) %>%
+  left_join(
+    Sim_2_Study_4 %>% select(nsim, n_sample, d, c, PMP1c_h_p3, PMP1u_h_p3, ind_p3),
+    by = c("nsim", "n_sample", "d", "c")
+  ) %>%
+  left_join(
+    Sim_2_Study_1 %>% select(nsim, n_sample, d, c, PMP1c_H, PMP1u_H, ind_comp),
+    by = c("nsim", "n_sample", "d", "c")
+  ) %>%
+  mutate(
+    BESc = prod(PMP1c_h_p1, PMP1c_h_p2, PMP1c_h_p3) / (
+      prod(PMP1c_h_p1, PMP1c_h_p2, PMP1c_h_p3) + prod(1 - PMP1c_h_p1, 1 - PMP1c_h_p2, 1 -
+                                                        PMP1c_h_p3)
+    ),
+    BESu = prod(PMP1u_h_p1, PMP1u_h_p2, PMP1u_h_p3) / (
+      prod(PMP1u_h_p1, PMP1u_h_p2, PMP1u_h_p3) + prod(1 - PMP1u_h_p1, 1 - PMP1u_h_p2, 1 -
+                                                        PMP1u_h_p3)
+    )
+  )
+```
+
+```{r}
+rm(Sim_2_Study_1, Sim_2_Study_2, Sim_2_Study_3, Sim_2_Study_4)
+```
+
+```{r}
+save(Sim_2, file = "../data/Sim_2.RData")
+```
+
+```{r}
+Sys.time() - t1
+```
+
+
+
+
+# Simulation 3 and 4
+Define Hypotheses
+```{r}
+h_p1 <- "mu_1 > mu_2"
+h_p2 <- "mu_3 > mu_2"
+h_p3 <- "mu_3 > mu_4"
+
+H_correct <- "mu_1 > mu_2 > mu_3 > mu_4" # to compare this, use data from Simulation 2
+H <- "mu_1 > mu_3 > mu_2 > mu_4" # in accordance with the partial hypotheses
+```
+
+## Simulation 3
+
+### Simulation 3 Study 1: Partial Hypothesis mu_1 > mu_2
+```{r}
+n_sample <- c(25, 50, 100, 500)
+```
+
+Simulates one dataset in which we test H_complete against BES, calculated from the same dataset.
+```{r}
+Sim_3_Study_1 <- simulate(nsim = nsim,
+                      n_sample = n_sample,
+                      d = d,
+                      c = c) %>%
+    rowwise() %>%
+    mutate(
+      BF_h_p1 = list(
+        BF(
+          x = s_mu,
+          Sigma = s_Sigma / n_sample,
+          n = n_sample,
+          hypothesis = h_p1
+        )
+      ),
+      BF1u_h_p1 = BF_h_p1$BFtu_confirmatory[[1]],
+      PMP1c_h_p1 = BF_h_p1$PHP_confirmatory[[1]],
+      PMP1u_h_p1 = BF1u_h_p1 / (BF1u_h_p1 + 1)) %>%
+  addIndicator("p1")
+
+```
+
+### Sim_3_Study_2: Partial Hypothesis mu_3 > mu_2
+```{r}
+Sim_3_Study_2 <- simulate(nsim = nsim,
+                      n_sample = n_sample,
+                      d = d,
+                      c = c) %>%
+    rowwise() %>%
+    mutate(
+      BF_h_p2 = list(
+        BF(
+          x = s_mu,
+          Sigma = s_Sigma / n_sample,
+          n = n_sample,
+          hypothesis = h_p2
+        )
+      ),
+      BF1u_h_p2 = BF_h_p2$BFtu_confirmatory[[1]],
+      PMP1c_h_p2 = BF_h_p2$PHP_confirmatory[[1]],
+      PMP1u_h_p2 = BF1u_h_p2 / (BF1u_h_p2 + 1)) %>%
+  addIndicator("p2")
+
+```
+
+### Sim_3_Study_3: Partial Hypothesis mu_3 > mu_4
+```{r}
+Sim_3_Study_3 <- simulate(nsim = nsim,
+                      n_sample = n_sample,
+                      d = d,
+                      c = c) %>%
+    rowwise() %>%
+    mutate(
+      BF_h_p3 = list(
+        BF(
+          x = s_mu,
+          Sigma = s_Sigma / n_sample,
+          n = n_sample,
+          hypothesis = h_p3
+        )
+      ),
+      BF1u_h_p3 = BF_h_p3$BFtu_confirmatory[[1]],
+      PMP1c_h_p3 = BF_h_p3$PHP_confirmatory[[1]],
+      PMP1u_h_p3 = BF1u_h_p3 / (BF1u_h_p3 + 1)) %>%
+  addIndicator("p3")
+
+```
+
+### Sim_3_Study_4: Aggregate Study 1-3 for complete Dataset
+```{r}
+# Compute the element-wise mean of s_mu (ensuring a vector output)
+pooled_s_mu <- map2(Sim_3_Study_1$s_mu, 
+                    map2(Sim_3_Study_2$s_mu, Sim_3_Study_3$s_mu, `+`), 
+                    ~ (.x + .y) / 3)
+
+# Compute the element-wise mean of s_Sigma (ensuring a matrix output)
+pooled_s_Sigma <- map2(Sim_3_Study_1$s_Sigma, 
+                       map2(Sim_3_Study_2$s_Sigma, Sim_3_Study_3$s_Sigma, `+`), 
+                       ~ (.x + .y) / 3)
+
+# Create a new DataFrame with the right format
+Sim_3 <- Sim_3_Study_1 %>%
+  select(nsim, n_sample, d, c, PMP1c_h_p1, PMP1u_h_p1, ind_p1) %>%
+  left_join(Sim_3_Study_2 %>% select(nsim, n_sample, d, c, PMP1c_h_p2, PMP1u_h_p2, ind_p2), by = c("nsim", "n_sample", "d", "c")) %>%
+  left_join(Sim_3_Study_3 %>% select(nsim, n_sample, d, c, PMP1c_h_p3, PMP1u_h_p3, ind_p3), by = c("nsim", "n_sample", "d", "c"))
+
+# Remove partial DFs, as all information is contained in pooled df
+rm(Sim_3_Study_1, Sim_3_Study_2, Sim_3_Study_3) 
+
+Sim_3$s_mu <- pooled_s_mu
+Sim_3$s_Sigma <- pooled_s_Sigma
+
+Sim_3 <- Sim_3 %>%
+  rowwise() %>%
+   mutate(
+    BF_H = list(BF(
+      x = s_mu,
+      Sigma = s_Sigma / (n_sample * 3), # multiply sample size by 3 to pool partial sample sizes
+      n = n_sample * 3,
+      hypothesis = H
+    )),
+    BF1u_H = BF_H$BFtu_confirmatory[[1]],
+    PMP1c_H = BF_H$PHP_confirmatory[[1]],
+    PMP1u_H = BF1u_H / (BF1u_H + 1)
+  ) %>%
+  addIndicator("comp")
+
+```
+
+### Clean outcome DF and compute BES
+```{r}
+Sim_3 <- Sim_3 %>%
+  select(-c("s_mu", "s_Sigma", "BF_H", "BF1u_H")) %>%
+  mutate(
+    BESc = prod(PMP1c_h_p1, PMP1c_h_p2, PMP1c_h_p3) / (
+      prod(PMP1c_h_p1, PMP1c_h_p2, PMP1c_h_p3) + prod(1 - PMP1c_h_p1, 1 - PMP1c_h_p2, 1 -
+                                                        PMP1c_h_p3)
+    ),
+    BESu = prod(PMP1u_h_p1, PMP1u_h_p2, PMP1u_h_p3) / (
+      prod(PMP1u_h_p1, PMP1u_h_p2, PMP1u_h_p3) + prod(1 - PMP1u_h_p1, 1 - PMP1u_h_p2, 1 -
+                                                        PMP1u_h_p3)
+    )
+  )
+```
+
+```{r}
+save(Sim_3, file = "../data/Sim_3.RData")
+```
+
+
+Timer
+```{r}
+Sys.time() - t1
+```
+
+Clean Workspace
+```{r}
+rm(Sim_3)
+```
+
+
+## Simulation 4
+
+
+### Simulation 4 Study 1: Complete Hypothesis
+```{r}
+n_sample <- c(75, 150, 300, 1500)
+```
+
+```{r}
+Sim_4_Study_1 <- simulate(nsim = nsim,
+                      n_sample = n_sample,
+                      d = d,
+                      c = c) %>%
+    rowwise() %>%
+    mutate(
+      # BF Complete Hypothesis
+      BF_H = list(
+        BF(
+          x = s_mu,
+          Sigma = s_Sigma / n_sample,
+          n = n_sample,
+          hypothesis = H
+        )
+      ),
+      BF1u_H = BF_H$BFtu_confirmatory[[1]],
+      PMP1c_H = BF_H$PHP_confirmatory[[1]],
+      PMP1u_H = BF1u_H / (BF1u_H + 1)) %>%
+  addIndicator("comp")
+```
+
+### Set Saple Size for partial Studies
+```{r}
+n_sample <- c(25, 50, 100, 500)
+```
+
+### Simulation 4 Study 2: mu_1 > mu_2
+```{r}
+Sim_4_Study_2 <- simulate(nsim = nsim,
+                      n_sample = n_sample,
+                      d = d,
+                      c = c) %>%
+    rowwise() %>%
+    mutate(
+      # BF Partial Study 1
+      BF_h_p1 = list(
+        BF(
+          x = s_mu,
+          Sigma = s_Sigma / n_sample,
+          n = n_sample,
+          hypothesis = h_p1
+        )
+      ),
+      BF1u_h_p1 = BF_h_p1$BFtu_confirmatory[[1]],
+      PMP1c_h_p1 = BF_h_p1$PHP_confirmatory[[1]],
+      PMP1u_h_p1 = BF1u_h_p1 / (BF1u_h_p1 + 1)
+    ) %>%
+  addIndicator("p1")
+```
+
+
+### Simulation 4 Study 3: mu_3 > mu_2
+```{r}
+Sim_4_Study_3 <- simulate(nsim = nsim,
+                      n_sample = n_sample,
+                      d = d,
+                      c = c) %>%
+    rowwise() %>%
+    mutate(
+      # BF Partial Study 2
+      BF_h_p2 = list(
+        BF(
+          x = s_mu,
+          Sigma = s_Sigma / n_sample,
+          n = n_sample,
+          hypothesis = h_p2
+        )
+      ),
+      BF1u_h_p2 = BF_h_p2$BFtu_confirmatory[[1]],
+      PMP1c_h_p2 = BF_h_p2$PHP_confirmatory[[1]],
+      PMP1u_h_p2 = BF1u_h_p2 / (BF1u_h_p2 + 1)
+    ) %>%
+  addIndicator("p2")
+```
+
+
+### Simulation 4 Study 4: mu_3 > mu_4
+```{r}
+Sim_4_Study_4 <- simulate(nsim = nsim,
+                      n_sample = n_sample,
+                      d = d,
+                      c = c) %>%
+    rowwise() %>%
+    mutate(
+      # BF Partial Study 3
+      BF_h_p3 = list(
+        BF(
+          x = s_mu,
+          Sigma = s_Sigma / n_sample,
+          n = n_sample,
+          hypothesis = h_p3
+        )
+      ),
+      BF1u_h_p3 = BF_h_p3$BFtu_confirmatory[[1]],
+      PMP1c_h_p3 = BF_h_p3$PHP_confirmatory[[1]],
+      PMP1u_h_p3 = BF1u_h_p3 / (BF1u_h_p3 + 1)
+    ) %>%
+  addIndicator("p3")
+```
+
+### Process Simulation 4
+```{r}
+# Sample Size to match partial studies
+Sim_4_Study_1$n_sample <- Sim_4_Study_1$n_sample/3
+```
+
+```{r}
+Sim_4 <- Sim_4_Study_2 %>%
+  select(nsim, n_sample, d, c, PMP1c_h_p1, PMP1u_h_p1, ind_p1)  %>%
+  left_join(
+    Sim_4_Study_3 %>% select(nsim, n_sample, d, c, PMP1c_h_p2, PMP1u_h_p2, ind_p2),
+    by = c("nsim", "n_sample", "d", "c")
+  ) %>%
+  left_join(
+    Sim_4_Study_4 %>% select(nsim, n_sample, d, c, PMP1c_h_p3, PMP1u_h_p3, ind_p3),
+    by = c("nsim", "n_sample", "d", "c")
+  ) %>%
+  left_join(
+    Sim_4_Study_1 %>% select(nsim, n_sample, d, c, PMP1c_H, PMP1u_H, ind_comp),
+    by = c("nsim", "n_sample", "d", "c")
+  ) %>%
+  mutate(
+    BESc = prod(PMP1c_h_p1, PMP1c_h_p2, PMP1c_h_p3) / (
+      prod(PMP1c_h_p1, PMP1c_h_p2, PMP1c_h_p3) + prod(1 - PMP1c_h_p1, 1 - PMP1c_h_p2, 1 -
+                                                        PMP1c_h_p3)
+    ),
+    BESu = prod(PMP1u_h_p1, PMP1u_h_p2, PMP1u_h_p3) / (
+      prod(PMP1u_h_p1, PMP1u_h_p2, PMP1u_h_p3) + prod(1 - PMP1u_h_p1, 1 - PMP1u_h_p2, 1 -
+                                                        PMP1u_h_p3)
+    )
+  )
+```
+
+```{r}
+rm(Sim_4_Study_1, Sim_4_Study_2, Sim_4_Study_3, Sim_4_Study_4)
+```
+
+```{r}
+save(Sim_4, file = "../data/Sim_4.RData")
+```
+
+```{r}
+Sys.time() - t1
+```
+
